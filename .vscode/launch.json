@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:alfred_for_me}",
+      "name": "Debug AlfredForMe",
+      "target": "AlfredForMe",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug AlfredForMe"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:alfred_for_me}",
+      "name": "Release AlfredForMe",
+      "target": "AlfredForMe",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release AlfredForMe"
+    }
+  ]
+}

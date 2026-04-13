@@ -1,0 +1,54 @@
+name: AlfredForMe
+options:
+  bundleIdPrefix: com.liupengfei
+  deploymentTarget:
+    macOS: "13.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: "Automatic"
+
+targets:
+  AlfredForMe:
+    type: application
+    platform: macOS
+    sources:
+      - path: AlfredForMe
+    settings:
+      base:
+        INFOPLIST_FILE: AlfredForMe/Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.liupengfei.alfredForMe
+        PRODUCT_NAME: AlfredForMe
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
+    entitlements:
+      path: AlfredForMe/Resources/AlfredForMe.entitlements
+    dependencies:
+      - package: GRDB
+      - package: HotKey
+      - package: Expression
+
+  AlfredForMeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: AlfredForMe
+
+packages:
+  GRDB:
+    url: https://github.com/groue/GRDB.swift.git
+    from: "6.24.0"
+  HotKey:
+    url: https://github.com/soffes/HotKey.git
+    from: "0.2.0"
+  Expression:
+    url: https://github.com/nicklockwood/Expression.git
+    from: "0.13.0"

@@ -193,6 +193,4 @@ AlfredForMe/
 ## License
 
 MIT
-# alfred_for_me
-# alfred_for_me
-# alfred_for_me
+
