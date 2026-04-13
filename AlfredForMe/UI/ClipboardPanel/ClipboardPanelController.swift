@@ -208,42 +208,83 @@ final class ClipboardPanelViewModel: ObservableObject {
   @Published var searchText: String = ""
   @Published var selectedIndex: Int = 0
   @Published var currentPage: Int = 0
+  @Published private(set) var displayItems: [ClipboardItem] = []
+  @Published private(set) var displaySelectedItem: ClipboardItem? = nil
+  @Published private(set) var displayFilteredCount: Int = 0
+  @Published private(set) var displayTotalPages: Int = 1
 
   let clipboardManager: ClipboardManager
   let onDismiss: () -> Void
   let pageSize = 30
 
   private var cancellables = Set<AnyCancellable>()
+  private var allFilteredItems: [ClipboardItem] = []
 
   init(clipboardManager: ClipboardManager, onDismiss: @escaping () -> Void) {
     self.clipboardManager = clipboardManager
     self.onDismiss = onDismiss
+    setupBindings()
   }
 
-  var filteredItems: [ClipboardItem] {
-    let items = clipboardManager.history
+  private func setupBindings() {
+    // React to search text changes: reset page/index and refilter
+    $searchText
+      .removeDuplicates()
+      .sink { [weak self] _ in
+        guard let self = self else { return }
+        self.currentPage = 0
+        self.selectedIndex = 0
+        self.refilter()
+      }
+      .store(in: &cancellables)
+
+    // React to clipboard history changes: refilter
+    clipboardManager.$history
+      .dropFirst()
+      .sink { [weak self] _ in
+        self?.refilter()
+      }
+      .store(in: &cancellables)
+  }
+
+  // MARK: - Imperative State Updates
+
+  private func refilter() {
     if searchText.isEmpty {
-      return items
+      allFilteredItems = clipboardManager.history
+    } else {
+      allFilteredItems = clipboardManager.history.filter {
+        $0.content.localizedCaseInsensitiveContains(searchText)
+      }
     }
-    return items.filter { $0.content.localizedCaseInsensitiveContains(searchText) }
+    displayFilteredCount = allFilteredItems.count
+    displayTotalPages = max(1, Int(ceil(Double(allFilteredItems.count) / Double(pageSize))))
+    if currentPage >= displayTotalPages {
+      currentPage = max(0, displayTotalPages - 1)
+    }
+    updatePagedItems()
   }
 
-  var pagedItems: [ClipboardItem] {
-    let all = filteredItems
+  private func updatePagedItems() {
     let start = currentPage * pageSize
-    guard start < all.count else { return [] }
-    let end = min(start + pageSize, all.count)
-    return Array(all[start..<end])
+    if start < allFilteredItems.count {
+      let end = min(start + pageSize, allFilteredItems.count)
+      displayItems = Array(allFilteredItems[start..<end])
+    } else {
+      displayItems = []
+    }
+    if selectedIndex >= displayItems.count && !displayItems.isEmpty {
+      selectedIndex = displayItems.count - 1
+    }
+    updateSelectedItem()
   }
 
-  var totalPages: Int {
-    max(1, Int(ceil(Double(filteredItems.count) / Double(pageSize))))
-  }
-
-  var selectedItem: ClipboardItem? {
-    let items = pagedItems
-    guard selectedIndex >= 0 && selectedIndex < items.count else { return nil }
-    return items[selectedIndex]
+  private func updateSelectedItem() {
+    if selectedIndex >= 0 && selectedIndex < displayItems.count {
+      displaySelectedItem = displayItems[selectedIndex]
+    } else {
+      displaySelectedItem = displayItems.first
+    }
   }
 
   func reset() {
@@ -253,20 +294,20 @@ final class ClipboardPanelViewModel: ObservableObject {
   }
 
   func moveSelection(by offset: Int) {
-    let items = pagedItems
-    guard !items.isEmpty else { return }
+    let count = displayItems.count
+    guard count > 0 else { return }
     let newIndex = selectedIndex + offset
-    if newIndex >= 0 && newIndex < items.count {
-      DispatchQueue.main.async { [weak self] in
-        self?.selectedIndex = newIndex
-      }
+    if newIndex >= 0 && newIndex < count {
+      selectedIndex = newIndex
+      updateSelectedItem()
     }
   }
 
   func nextPage() {
-    if currentPage < totalPages - 1 {
+    if currentPage < displayTotalPages - 1 {
       currentPage += 1
       selectedIndex = 0
+      updatePagedItems()
     }
   }
 
@@ -274,23 +315,22 @@ final class ClipboardPanelViewModel: ObservableObject {
     if currentPage > 0 {
       currentPage -= 1
       selectedIndex = 0
+      updatePagedItems()
     }
   }
 
   func executeSelected() {
-    guard let item = selectedItem else { return }
+    guard let item = displaySelectedItem else { return }
     clipboardManager.copyToClipboard(item.content)
     clipboardManager.pasteItem(item)
     onDismiss()
   }
 
   func deleteSelected() {
-    guard let item = selectedItem else { return }
+    guard let item = displaySelectedItem else { return }
     clipboardManager.remove(item: item)
-    // Adjust selectedIndex if needed
-    let items = pagedItems
-    if selectedIndex >= items.count && selectedIndex > 0 {
-      selectedIndex = items.count - 1
+    if selectedIndex >= displayItems.count - 1 && selectedIndex > 0 {
+      selectedIndex -= 1
     }
   }
 

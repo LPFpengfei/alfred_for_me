@@ -15,10 +15,6 @@ struct ClipboardPanelView: View {
         onKeyDown: { viewModel.handleKeyDown($0) },
         onSubmit: { viewModel.executeSelected() }
       )
-      .onChange(of: viewModel.searchText) { _ in
-        viewModel.currentPage = 0
-        viewModel.selectedIndex = 0
-      }
 
       Rectangle()
         .fill(themeManager.current.separatorColor.opacity(0.5))
@@ -29,7 +25,7 @@ struct ClipboardPanelView: View {
       HStack(spacing: 0) {
         // Left: clipboard list
         ClipboardListView(
-          items: viewModel.pagedItems,
+          items: viewModel.displayItems,
           selectedIndex: $viewModel.selectedIndex,
           onSelect: { index in
             viewModel.selectedIndex = index
@@ -46,7 +42,7 @@ struct ClipboardPanelView: View {
           .frame(width: 1)
 
         // Right: preview panel
-        ClipboardPreviewView(item: viewModel.selectedItem)
+        ClipboardPreviewView(item: viewModel.displaySelectedItem)
       }
 
       Rectangle()
@@ -57,8 +53,8 @@ struct ClipboardPanelView: View {
       // Bottom: pagination + shortcuts
       ClipboardBottomBar(
         currentPage: viewModel.currentPage,
-        totalPages: viewModel.totalPages,
-        totalItems: viewModel.filteredItems.count,
+        totalPages: viewModel.displayTotalPages,
+        totalItems: viewModel.displayFilteredCount,
         onPreviousPage: { viewModel.previousPage() },
         onNextPage: { viewModel.nextPage() }
       )
