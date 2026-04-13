@@ -153,20 +153,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       }
     }
 
+    // Register AI chat hotkey if configured
+    if let aiHotkey = settingsManager.aiChatHotkey {
+      hotkeyManager.register(hotkey: aiHotkey) {
+        AIChatWindowController.shared.showChatWindow()
+      }
+    }
+
     // Listen for hotkey changes
     settingsManager.$globalHotkey
       .dropFirst()
-      .sink { [weak self] newHotkey in
-        self?.hotkeyManager.unregisterAll()
-        self?.hotkeyManager.register(hotkey: newHotkey) { [weak self] in
-          self?.searchPanelController.toggle()
-        }
-        // Re-register clipboard hotkey
-        if let cbHotkey = self?.settingsManager.clipboardHotkey {
-          self?.hotkeyManager.register(hotkey: cbHotkey) { [weak self] in
-            self?.clipboardPanelController.toggle()
-          }
-        }
+      .sink { [weak self] _ in
+        self?.reregisterAllHotkeys()
       }
       .store(in: &cancellables)
 
@@ -174,18 +172,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     settingsManager.$clipboardHotkey
       .dropFirst()
       .sink { [weak self] _ in
-        self?.hotkeyManager.unregisterAll()
-        let globalHk = self?.settingsManager.globalHotkey ?? HotkeyConfig.defaultHotkey
-        self?.hotkeyManager.register(hotkey: globalHk) { [weak self] in
-          self?.searchPanelController.toggle()
-        }
-        if let cbHotkey = self?.settingsManager.clipboardHotkey {
-          self?.hotkeyManager.register(hotkey: cbHotkey) { [weak self] in
-            self?.clipboardPanelController.toggle()
-          }
-        }
+        self?.reregisterAllHotkeys()
       }
       .store(in: &cancellables)
+
+    // Listen for AI chat hotkey changes
+    settingsManager.$aiChatHotkey
+      .dropFirst()
+      .sink { [weak self] _ in
+        self?.reregisterAllHotkeys()
+      }
+      .store(in: &cancellables)
+  }
+
+  private func reregisterAllHotkeys() {
+    hotkeyManager.unregisterAll()
+    let globalHk = settingsManager.globalHotkey
+    hotkeyManager.register(hotkey: globalHk) { [weak self] in
+      self?.searchPanelController.toggle()
+    }
+    if let cbHotkey = settingsManager.clipboardHotkey {
+      hotkeyManager.register(hotkey: cbHotkey) { [weak self] in
+        self?.clipboardPanelController.toggle()
+      }
+    }
+    if let aiHotkey = settingsManager.aiChatHotkey {
+      hotkeyManager.register(hotkey: aiHotkey) {
+        AIChatWindowController.shared.showChatWindow()
+      }
+    }
   }
 
   // MARK: - Settings Window

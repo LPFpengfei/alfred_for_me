@@ -46,7 +46,7 @@ final class AppLauncherPlugin: SearchPlugin {
       return SearchResult(
         id: "app:\(app.path)",
         title: app.name,
-        subtitle: app.path,
+        subtitle: abbreviatePath(app.path),
         icon: app.icon,
         category: .application,
         relevanceScore: score,
@@ -173,5 +173,13 @@ final class AppLauncherPlugin: SearchPlugin {
     }
 
     return 0
+  }
+
+  private func abbreviatePath(_ path: String) -> String {
+    let home = NSHomeDirectory()
+    if path.hasPrefix(home) {
+      return "~" + path.dropFirst(home.count)
+    }
+    return path
   }
 }

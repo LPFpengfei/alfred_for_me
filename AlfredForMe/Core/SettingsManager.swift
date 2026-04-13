@@ -70,6 +70,17 @@ final class SettingsManager: ObservableObject {
     }
   }
 
+  // MARK: - AI Chat
+  @Published var aiChatHotkey: HotkeyConfig? {
+    didSet {
+      if let hk = aiChatHotkey {
+        save(hotkey: hk, forKey: "aiChatHotkey")
+      } else {
+        UserDefaults.standard.removeObject(forKey: "aiChatHotkey")
+      }
+    }
+  }
+
   // MARK: - Snippets
   @Published var snippets: [Snippet] {
     didSet { saveSnippets() }
@@ -104,6 +115,9 @@ final class SettingsManager: ObservableObject {
     self.clipboardHotkey =
       Self.loadHotkey(forKey: "clipboardHotkey")
       ?? HotkeyConfig(keyCode: 0x08, modifiers: UInt32(optionKey | cmdKey))
+    self.aiChatHotkey =
+      Self.loadHotkey(forKey: "aiChatHotkey")
+      ?? HotkeyConfig(keyCode: UInt32(kVK_ANSI_I), modifiers: UInt32(optionKey | cmdKey))
     self.snippets = Self.loadSnippets()
     self.terminalApp = defaults.string(forKey: "terminalApp") ?? "Terminal"
     self.shellPath = defaults.string(forKey: "shellPath") ?? "/bin/zsh"

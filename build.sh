@@ -76,6 +76,12 @@ EOF
 # Create PkgInfo
 echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
 
+# Copy icon if present
+if [ -f "$SCRIPT_DIR/AlfredForMe/Resources/AppIcon.icns" ]; then
+    cp "$SCRIPT_DIR/AlfredForMe/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/"
+    echo "🎨 App icon copied"
+fi
+
 # Copy entitlements if present
 if [ -f "$SCRIPT_DIR/AlfredForMe/Resources/AlfredForMe.entitlements" ]; then
     cp "$SCRIPT_DIR/AlfredForMe/Resources/AlfredForMe.entitlements" "$APP_BUNDLE/Contents/Resources/"

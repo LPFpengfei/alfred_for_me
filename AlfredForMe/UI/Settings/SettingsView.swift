@@ -1,3 +1,4 @@
+import Carbon
 import SwiftUI
 
 // MARK: - Settings View
@@ -61,6 +62,22 @@ struct SettingsView: View {
     HStack(spacing: 0) {
       // Sidebar
       List(selection: $selectedTab) {
+        // App Logo Header
+        VStack(spacing: 6) {
+          Image(nsImage: NSApp.applicationIconImage ?? NSImage())
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 56, height: 56)
+          Text("AlfredForMe")
+            .font(.system(size: 14, weight: .bold))
+          Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
+            .font(.system(size: 11))
+            .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .listRowSeparator(.hidden)
+
         ForEach(groupedTabs, id: \.0) { section, tabs in
           Section {
             ForEach(tabs) { tab in
@@ -189,18 +206,41 @@ struct GeneralSettingsView: View {
       }
 
       SettingsCard(title: l10n.t("general.hotkey")) {
-        SettingsRow(showDivider: false) {
+        SettingsRow {
           HStack {
             Text(l10n.t("general.globalHotkey"))
             Spacer()
-            Text("⌥ Space")
-              .font(.system(size: 13, weight: .medium, design: .rounded))
-              .padding(.horizontal, 14)
-              .padding(.vertical, 6)
-              .background(
-                RoundedRectangle(cornerRadius: 6)
-                  .fill(Color.secondary.opacity(0.12))
-              )
+            HotkeyRecorderButton(hotkey: $settingsManager.globalHotkey)
+          }
+        }
+        SettingsRow {
+          HStack {
+            Text("剪贴板快捷键")
+            Spacer()
+            HotkeyRecorderButton(
+              hotkey: Binding(
+                get: {
+                  settingsManager.clipboardHotkey
+                    ?? HotkeyConfig(
+                      keyCode: UInt32(kVK_ANSI_C), modifiers: UInt32(optionKey | cmdKey))
+                },
+                set: { settingsManager.clipboardHotkey = $0 }
+              ))
+          }
+        }
+        SettingsRow(showDivider: false) {
+          HStack {
+            Text("AI 对话快捷键")
+            Spacer()
+            HotkeyRecorderButton(
+              hotkey: Binding(
+                get: {
+                  settingsManager.aiChatHotkey
+                    ?? HotkeyConfig(
+                      keyCode: UInt32(kVK_ANSI_I), modifiers: UInt32(optionKey | cmdKey))
+                },
+                set: { settingsManager.aiChatHotkey = $0 }
+              ))
           }
         }
       }
@@ -978,6 +1018,73 @@ struct AdvancedSettingsView: View {
             .foregroundColor(.secondary)
         }
       }
+    }
+  }
+}
+
+// MARK: - Hotkey Recorder Button
+
+struct HotkeyRecorderButton: View {
+  @Binding var hotkey: HotkeyConfig
+  @State private var isRecording = false
+  @State private var monitor: Any?
+
+  var body: some View {
+    Button(action: {
+      if isRecording {
+        stopRecording()
+      } else {
+        startRecording()
+      }
+    }) {
+      Text(isRecording ? "按下快捷键..." : hotkey.displayName)
+        .font(.system(size: 13, weight: .medium, design: .rounded))
+        .foregroundColor(isRecording ? .accentColor : .primary)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .background(
+          RoundedRectangle(cornerRadius: 6)
+            .fill(isRecording ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.12))
+        )
+        .overlay(
+          RoundedRectangle(cornerRadius: 6)
+            .stroke(isRecording ? Color.accentColor : Color.clear, lineWidth: 1)
+        )
+    }
+    .buttonStyle(.plain)
+    .onDisappear {
+      stopRecording()
+    }
+  }
+
+  private func startRecording() {
+    isRecording = true
+    monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+      if event.keyCode == UInt16(kVK_Escape) {
+        stopRecording()
+        return nil
+      }
+
+      let modifiers = event.modifierFlags
+      var carbonMods: UInt32 = 0
+      if modifiers.contains(.control) { carbonMods |= UInt32(controlKey) }
+      if modifiers.contains(.option) { carbonMods |= UInt32(optionKey) }
+      if modifiers.contains(.shift) { carbonMods |= UInt32(shiftKey) }
+      if modifiers.contains(.command) { carbonMods |= UInt32(cmdKey) }
+
+      guard carbonMods != 0 else { return event }
+
+      hotkey = HotkeyConfig(keyCode: UInt32(event.keyCode), modifiers: carbonMods)
+      stopRecording()
+      return nil
+    }
+  }
+
+  private func stopRecording() {
+    isRecording = false
+    if let m = monitor {
+      NSEvent.removeMonitor(m)
+      monitor = nil
     }
   }
 }

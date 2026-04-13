@@ -17,8 +17,18 @@ final class StatusBarController: NSObject {
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
     if let button = statusItem.button {
-      button.image = NSImage(systemSymbolName: "command", accessibilityDescription: "AlfredForMe")
-      button.image?.size = NSSize(width: 18, height: 18)
+      if let appIcon = NSApp.applicationIconImage {
+        let size = NSSize(width: 18, height: 18)
+        let icon = NSImage(size: size, flipped: false) { rect in
+          appIcon.draw(in: rect)
+          return true
+        }
+        icon.isTemplate = false
+        button.image = icon
+      } else {
+        button.image = NSImage(systemSymbolName: "command", accessibilityDescription: "AlfredForMe")
+        button.image?.size = NSSize(width: 18, height: 18)
+      }
     }
 
     let l10n = LocalizationManager.shared

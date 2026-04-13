@@ -101,6 +101,7 @@ struct SearchTextField: NSViewRepresentable {
   let onSubmit: () -> Void
   let onKeyDown: (NSEvent) -> Bool
   let theme: AppTheme
+  var onTextChanged: ((String) -> Void)? = nil
 
   func makeCoordinator() -> Coordinator {
     Coordinator(self)
@@ -128,6 +129,7 @@ struct SearchTextField: NSViewRepresentable {
   }
 
   func updateNSView(_ textField: CustomSearchField, context: Context) {
+    context.coordinator.parent = self
     if textField.stringValue != text {
       textField.stringValue = text
     }
@@ -136,7 +138,7 @@ struct SearchTextField: NSViewRepresentable {
   }
 
   class Coordinator: NSObject, NSTextFieldDelegate {
-    let parent: SearchTextField
+    var parent: SearchTextField
 
     init(_ parent: SearchTextField) {
       self.parent = parent
@@ -144,7 +146,16 @@ struct SearchTextField: NSViewRepresentable {
 
     func controlTextDidChange(_ obj: Notification) {
       if let textField = obj.object as? NSTextField {
-        parent.text = textField.stringValue
+        let newText = textField.stringValue
+        if let onTextChanged = parent.onTextChanged {
+          // Direct callback path: let callback handle all state updates
+          // Do NOT write Binding to avoid triggering a premature SwiftUI render
+          // before refreshDisplay has updated displayItems.
+          onTextChanged(newText)
+        } else {
+          // Binding-only path (search panel)
+          parent.text = newText
+        }
       }
     }
 

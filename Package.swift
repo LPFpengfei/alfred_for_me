@@ -10,7 +10,10 @@ let package = Package(
     .executableTarget(
       name: "AlfredForMe",
       path: "AlfredForMe",
-      exclude: ["Resources/Info.plist", "Resources/AlfredForMe.entitlements"],
+      exclude: [
+        "Resources/Info.plist", "Resources/AlfredForMe.entitlements", "Resources/AppIcon.icns",
+        "Resources/AppIcon_preview.png",
+      ],
       swiftSettings: [
         .unsafeFlags(["-parse-as-library"])
       ]

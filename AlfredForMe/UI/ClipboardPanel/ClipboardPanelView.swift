@@ -13,7 +13,8 @@ struct ClipboardPanelView: View {
       ClipboardSearchBar(
         searchText: $viewModel.searchText,
         onKeyDown: { viewModel.handleKeyDown($0) },
-        onSubmit: { viewModel.executeSelected() }
+        onSubmit: { viewModel.executeSelected() },
+        onTextChanged: { newText in viewModel.setSearchText(newText) }
       )
 
       Rectangle()
@@ -28,10 +29,10 @@ struct ClipboardPanelView: View {
           items: viewModel.displayItems,
           selectedIndex: $viewModel.selectedIndex,
           onSelect: { index in
-            viewModel.selectedIndex = index
+            viewModel.selectItem(at: index)
           },
           onDoubleClick: { index in
-            viewModel.selectedIndex = index
+            viewModel.selectItem(at: index)
             viewModel.executeSelected()
           }
         )
@@ -68,6 +69,7 @@ struct ClipboardSearchBar: View {
   @Binding var searchText: String
   let onKeyDown: (NSEvent) -> Bool
   let onSubmit: () -> Void
+  let onTextChanged: (String) -> Void
 
   @EnvironmentObject var themeManager: ThemeManager
 
@@ -82,12 +84,16 @@ struct ClipboardSearchBar: View {
         placeholder: LocalizationManager.shared.t("clipboard.searchPlaceholder"),
         onSubmit: onSubmit,
         onKeyDown: onKeyDown,
-        theme: themeManager.current
+        theme: themeManager.current,
+        onTextChanged: onTextChanged
       )
       .font(.system(size: themeManager.current.fontSize - 2))
 
       if !searchText.isEmpty {
-        Button(action: { searchText = "" }) {
+        Button(action: {
+          searchText = ""
+          onTextChanged("")
+        }) {
           Image(systemName: "xmark.circle.fill")
             .foregroundColor(themeManager.current.subtitleColor)
         }
@@ -113,7 +119,7 @@ struct ClipboardListView: View {
   var body: some View {
     ScrollViewReader { proxy in
       ScrollView(.vertical, showsIndicators: true) {
-        LazyVStack(spacing: 0) {
+        VStack(spacing: 0) {
           if items.isEmpty {
             Text(LocalizationManager.shared.t("clipboard.empty"))
               .font(.system(size: 13))
@@ -127,7 +133,7 @@ struct ClipboardListView: View {
                 isSelected: index == selectedIndex,
                 index: index
               )
-              .id(index)
+              .id(item.id)
               .onTapGesture(count: 2) {
                 onDoubleClick(index)
               }
@@ -140,8 +146,10 @@ struct ClipboardListView: View {
         .padding(.vertical, 4)
       }
       .onChange(of: selectedIndex) { newIndex in
-        withAnimation(.easeInOut(duration: 0.1)) {
-          proxy.scrollTo(newIndex, anchor: .center)
+        if newIndex >= 0 && newIndex < items.count {
+          withAnimation(.easeInOut(duration: 0.1)) {
+            proxy.scrollTo(items[newIndex].id, anchor: .center)
+          }
         }
       }
     }
