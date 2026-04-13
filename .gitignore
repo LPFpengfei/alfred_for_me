@@ -14,7 +14,7 @@ DerivedData/
 Packages/
 Package.resolved
 *.xcodeproj
-AlfredForMe.app
+AlfredForMe.app/
 
 # OS
 .DS_Store
