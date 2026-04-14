@@ -508,8 +508,12 @@ struct ChatInputTextField: NSViewRepresentable {
           label.translatesAutoresizingMaskIntoConstraints = false
           textView.addSubview(label)
           NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: textView.leadingAnchor, constant: textView.textContainerInset.width + (textView.textContainer?.lineFragmentPadding ?? 0)),
-            label.topAnchor.constraint(equalTo: textView.topAnchor, constant: textView.textContainerInset.height),
+            label.leadingAnchor.constraint(
+              equalTo: textView.leadingAnchor,
+              constant: textView.textContainerInset.width
+                + (textView.textContainer?.lineFragmentPadding ?? 0)),
+            label.topAnchor.constraint(
+              equalTo: textView.topAnchor, constant: textView.textContainerInset.height),
           ])
           placeholderLabel = label
         }

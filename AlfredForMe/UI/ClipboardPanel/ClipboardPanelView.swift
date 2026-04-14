@@ -30,6 +30,7 @@ struct ClipboardPanelView: View {
           selectedIndex: $viewModel.selectedIndex,
           onSelect: { index in
             viewModel.selectItem(at: index)
+            viewModel.executeSelected()
           },
           onDoubleClick: { index in
             viewModel.selectItem(at: index)
@@ -176,7 +177,10 @@ struct ClipboardRowView: View {
   }
 
   private var preview: String {
-    item.content.prefix(80).replacingOccurrences(of: "\n", with: " ↵ ")
+    if item.contentType == .image {
+      return LocalizationManager.shared.t("clipboard.imageItem")
+    }
+    return String(item.content.prefix(80)).replacingOccurrences(of: "\n", with: " ↵ ")
   }
 
   private var timeAgo: String {
@@ -190,17 +194,27 @@ struct ClipboardRowView: View {
 
   var body: some View {
     HStack(spacing: 10) {
-      Image(systemName: iconName)
-        .font(.system(size: 13, weight: .medium))
-        .foregroundColor(isSelected ? .white : themeManager.current.accentColor)
-        .frame(width: 24, height: 24)
-        .background(
-          RoundedRectangle(cornerRadius: 5)
-            .fill(
-              isSelected
-                ? themeManager.current.accentColor.opacity(0.15)
-                : themeManager.current.separatorColor.opacity(0.3))
-        )
+      if item.contentType == .image, let imageData = item.imageData,
+        let nsImage = NSImage(data: imageData)
+      {
+        Image(nsImage: nsImage)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+          .frame(width: 24, height: 24)
+          .clipShape(RoundedRectangle(cornerRadius: 5))
+      } else {
+        Image(systemName: iconName)
+          .font(.system(size: 13, weight: .medium))
+          .foregroundColor(isSelected ? .white : themeManager.current.accentColor)
+          .frame(width: 24, height: 24)
+          .background(
+            RoundedRectangle(cornerRadius: 5)
+              .fill(
+                isSelected
+                  ? themeManager.current.accentColor.opacity(0.15)
+                  : themeManager.current.separatorColor.opacity(0.3))
+          )
+      }
 
       VStack(alignment: .leading, spacing: 2) {
         Text(preview)
@@ -287,13 +301,29 @@ struct ClipboardPreviewView: View {
           .padding(.horizontal, 10)
 
         // Content
-        ScrollView(.vertical, showsIndicators: true) {
-          Text(item.content)
-            .font(.system(size: 12, design: .monospaced))
-            .foregroundColor(themeManager.current.textColor)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .padding(14)
-            .textSelection(.enabled)
+        if item.contentType == .image, let imageData = item.imageData,
+          let nsImage = NSImage(data: imageData)
+        {
+          VStack {
+            Spacer()
+            Image(nsImage: nsImage)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+              .frame(maxWidth: 280, maxHeight: 280)
+              .clipShape(RoundedRectangle(cornerRadius: 6))
+            Spacer()
+          }
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .padding(14)
+        } else {
+          ScrollView(.vertical, showsIndicators: true) {
+            Text(item.content)
+              .font(.system(size: 12, design: .monospaced))
+              .foregroundColor(themeManager.current.textColor)
+              .frame(maxWidth: .infinity, alignment: .topLeading)
+              .padding(14)
+              .textSelection(.enabled)
+          }
         }
 
         Rectangle()
@@ -301,11 +331,20 @@ struct ClipboardPreviewView: View {
           .frame(height: 1)
           .padding(.horizontal, 10)
 
-        // Footer with character count
+        // Footer
         HStack {
-          Text("\(item.content.count) \(LocalizationManager.shared.t("clipboard.characters"))")
-            .font(.system(size: 10))
-            .foregroundColor(themeManager.current.subtitleColor)
+          if item.contentType == .image, let imageData = item.imageData,
+            let nsImage = NSImage(data: imageData)
+          {
+            let size = nsImage.size
+            Text("\(Int(size.width))×\(Int(size.height)) px")
+              .font(.system(size: 10))
+              .foregroundColor(themeManager.current.subtitleColor)
+          } else {
+            Text("\(item.content.count) \(LocalizationManager.shared.t("clipboard.characters"))")
+              .font(.system(size: 10))
+              .foregroundColor(themeManager.current.subtitleColor)
+          }
 
           Spacer()
 

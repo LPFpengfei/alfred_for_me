@@ -122,6 +122,7 @@ struct L10n {
     "clipboard.operations": [.zhHans: "操作", .en: "Actions"],
     "clipboard.searchPlaceholder": [.zhHans: "搜索剪贴板历史...", .en: "Search clipboard history..."],
     "clipboard.empty": [.zhHans: "暂无剪贴板记录", .en: "No clipboard history"],
+    "clipboard.imageItem": [.zhHans: "[图片]", .en: "[Image]"],
     "clipboard.preview": [.zhHans: "内容预览", .en: "Preview"],
     "clipboard.characters": [.zhHans: "个字符", .en: "characters"],
     "clipboard.enterToPaste": [.zhHans: "按 ⏎ 粘贴", .en: "Press ⏎ to paste"],

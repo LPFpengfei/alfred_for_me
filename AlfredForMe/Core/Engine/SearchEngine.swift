@@ -39,7 +39,9 @@ final class SearchEngine: ObservableObject {
       let searchQuery = QueryParser.parse(raw: trimmed, pluginManager: pluginManager)
       let matchingPlugins = pluginManager.plugins(for: searchQuery)
 
-      // Run all matching plugins concurrently
+      // Run all matching plugins concurrently with INCREMENTAL display
+      // This ensures fast plugins (Calculator, AppLauncher) show results immediately
+      // without waiting for slow plugins (FileSearch with Spotlight timeout)
       var allResults: [SearchResult] = []
 
       await withTaskGroup(of: [SearchResult].self) { group in
@@ -51,17 +53,20 @@ final class SearchEngine: ObservableObject {
         }
 
         for await pluginResults in group {
+          guard !Task.isCancelled else { return }
           allResults.append(contentsOf: pluginResults)
+
+          // Incrementally update UI as each plugin returns results
+          let ranked = self.resultRanker.rank(results: allResults, query: searchQuery)
+          await MainActor.run {
+            self.results = ranked
+          }
         }
       }
 
       guard !Task.isCancelled else { return }
 
-      // Rank and sort results
-      let ranked = self.resultRanker.rank(results: allResults, query: searchQuery)
-
       await MainActor.run {
-        self.results = ranked
         self.isSearching = false
       }
     }
@@ -70,7 +75,7 @@ final class SearchEngine: ObservableObject {
   func execute(result: SearchResult) {
     Task {
       if let plugin = pluginManager.plugin(for: result.plugin) {
-        // Update usage for ranking
+        // Record to knowledge DB (like Alfred's addResultToKnowledge:withQuery:)
         resultRanker.recordUsage(resultId: result.id, query: result.title)
         await plugin.execute(result: result)
       }
@@ -125,59 +130,78 @@ struct QueryParser {
   }
 }
 
-// MARK: - Result Ranker
+// MARK: - Result Ranker (Knowledge-aware, like Alfred's sortResults:withQuery:)
 
 final class ResultRanker {
-  private var usageHistory: [String: Int] = [:]
-  private let usageHistoryKey = "SearchResultUsageHistory"
-
-  init() {
-    loadUsageHistory()
-  }
+  private let db = SearchDatabase.shared
 
   func rank(results: [SearchResult], query: SearchQuery) -> [SearchResult] {
+    let queryKey = query.raw.lowercased()
+
+    // Fetch knowledge weights from DB (like Alfred's knowledge.alfdb)
+    let knowledgeWeights = db.knowledgeWeights(keyword: queryKey)
+
+    // Also fetch recent usage (last 30 days) for items in results
+    let itemIds = results.map { $0.id }
+    let recentWeights = db.recentUsageWeights(items: itemIds, days: 30)
+
     return results.sorted { a, b in
-      let scoreA = calculateScore(result: a, query: query)
-      let scoreB = calculateScore(result: b, query: query)
+      let scoreA = calculateScore(
+        result: a, query: query,
+        knowledgeWeight: knowledgeWeights[a.id] ?? 0,
+        recentWeight: recentWeights[a.id] ?? 0)
+      let scoreB = calculateScore(
+        result: b, query: query,
+        knowledgeWeight: knowledgeWeights[b.id] ?? 0,
+        recentWeight: recentWeights[b.id] ?? 0)
       return scoreA > scoreB
     }
   }
 
+  /// Record usage to knowledge DB (like Alfred's addResultToKnowledge:withQuery:)
   func recordUsage(resultId: String, query: String) {
-    let key = "\(query.lowercased()):\(resultId)"
-    usageHistory[key, default: 0] += 1
-    saveUsageHistory()
+    let keyword = query.lowercased()
+    db.addKnowledge(item: resultId, keyword: keyword)
   }
 
-  private func calculateScore(result: SearchResult, query: SearchQuery) -> Double {
+  /// Multi-factor scoring like Alfred's weight system:
+  /// - baseWeight: from plugin relevance score
+  /// - keyWeight: from keyword/text match quality
+  /// - usedWeight: from knowledge DB (frequency-based)
+  private func calculateScore(
+    result: SearchResult,
+    query: SearchQuery,
+    knowledgeWeight: Int,
+    recentWeight: Int
+  ) -> Double {
+    // Base weight from plugin
     var score = result.relevanceScore
 
-    // Category bonus
+    // Category bonus (like Alfred's preferencesSortWeight)
     score += Double(100 - result.category.sortOrder) / 100.0
 
-    // Usage history bonus
-    let key = "\(query.raw.lowercased()):\(result.id)"
-    if let usage = usageHistory[key] {
-      score += min(Double(usage) * 0.1, 1.0)
+    // Knowledge weight bonus (frequency from DB)
+    // Like Alfred: "select item, count(item) as weight from knowledge where keyword = ?"
+    if knowledgeWeight > 0 {
+      score += min(Double(knowledgeWeight) * 0.2, 2.0)
+    }
+
+    // Recent usage bonus (time-decayed frequency)
+    if recentWeight > 0 {
+      score += min(Double(recentWeight) * 0.1, 1.0)
     }
 
     // Exact match bonus
-    if result.title.lowercased() == query.raw.lowercased() {
+    let queryLower = query.raw.lowercased()
+    let titleLower = result.title.lowercased()
+    if titleLower == queryLower {
       score += 2.0
-    } else if result.title.lowercased().hasPrefix(query.raw.lowercased()) {
+    } else if titleLower.hasPrefix(queryLower) {
       score += 1.0
+    } else if titleLower.contains(queryLower) {
+      score += 0.3
     }
 
     return score
-  }
-
-  private func loadUsageHistory() {
-    if let data = UserDefaults.standard.dictionary(forKey: usageHistoryKey) as? [String: Int] {
-      usageHistory = data
-    }
-  }
-
-  private func saveUsageHistory() {
-    UserDefaults.standard.set(usageHistory, forKey: usageHistoryKey)
   }
 }

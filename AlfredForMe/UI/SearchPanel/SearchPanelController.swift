@@ -342,12 +342,13 @@ final class SearchViewModel: ObservableObject {
         self.selectedIndex = 0
 
         // Calculate panel height
+        // SearchBar(56) + Separator(1) + ResultsList padding(12) + titlebar(28) + bottom corner(14)
         let maxVisible = self.settingsManager.maxResults
         let visibleCount = min(results.count, maxVisible)
-        let searchBarHeight: CGFloat = 64
-        let resultRowHeight: CGFloat = 52
-        let totalHeight = searchBarHeight + CGFloat(visibleCount) * resultRowHeight
-        self.onResize(results.isEmpty ? searchBarHeight : totalHeight)
+        let overhead: CGFloat = 111  // 56 + 1 + 12 + 28 + 14
+        let resultRowHeight: CGFloat = 48
+        let totalHeight = overhead + CGFloat(visibleCount) * resultRowHeight
+        self.onResize(results.isEmpty ? 60 : totalHeight)
       }
       .store(in: &cancellables)
 

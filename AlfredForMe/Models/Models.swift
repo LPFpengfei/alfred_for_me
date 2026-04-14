@@ -243,10 +243,11 @@ struct ClipboardItem: Identifiable, Codable {
   let timestamp: Date
   let appName: String?
   let appBundleID: String?
+  let imageData: Data?
 
   init(
     content: String, contentType: ClipboardContentType = .text, appName: String? = nil,
-    appBundleID: String? = nil
+    appBundleID: String? = nil, imageData: Data? = nil
   ) {
     self.id = UUID().uuidString
     self.content = content
@@ -254,6 +255,22 @@ struct ClipboardItem: Identifiable, Codable {
     self.timestamp = Date()
     self.appName = appName
     self.appBundleID = appBundleID
+    self.imageData = imageData
+  }
+
+  enum CodingKeys: String, CodingKey {
+    case id, content, contentType, timestamp, appName, appBundleID, imageData
+  }
+
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    id = try c.decode(String.self, forKey: .id)
+    content = try c.decode(String.self, forKey: .content)
+    contentType = try c.decode(ClipboardContentType.self, forKey: .contentType)
+    timestamp = try c.decode(Date.self, forKey: .timestamp)
+    appName = try c.decodeIfPresent(String.self, forKey: .appName)
+    appBundleID = try c.decodeIfPresent(String.self, forKey: .appBundleID)
+    imageData = try c.decodeIfPresent(Data.self, forKey: .imageData)
   }
 }
 

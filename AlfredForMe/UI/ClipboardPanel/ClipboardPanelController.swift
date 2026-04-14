@@ -12,6 +12,7 @@ final class ClipboardPanelController: NSObject {
   private var isVisible = false
   private var globalClickMonitor: Any?
   private var localKeyMonitor: Any?
+  private var previousApp: NSRunningApplication?
 
   init(clipboardManager: ClipboardManager, themeManager: ThemeManager) {
     self.clipboardManager = clipboardManager
@@ -30,6 +31,7 @@ final class ClipboardPanelController: NSObject {
 
   func show() {
     isVisible = false
+    previousApp = NSWorkspace.shared.frontmostApplication
     viewModel.reset()
     positionPanel()
 
@@ -51,6 +53,54 @@ final class ClipboardPanelController: NSObject {
     panel.orderOut(nil)
     isVisible = false
     NSApp.setActivationPolicy(.accessory)
+  }
+
+  func hideAndPaste() {
+    let targetApp = previousApp
+
+    // 1. Hide the panel
+    stopEventMonitors()
+    panel.orderOut(nil)
+    isVisible = false
+
+    // 2. Activate the previous app FIRST, then switch to accessory
+    if let app = targetApp {
+      app.activate()
+    }
+    NSApp.setActivationPolicy(.accessory)
+
+    // 3. After 100ms delay, simulate Cmd+V (same timing as Alfred 5)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+      Self.simulatePaste()
+    }
+  }
+
+  /// Simulate Cmd+V paste using CGEvent, matching Alfred 5's exact approach:
+  /// - CGEventSource with .privateState
+  /// - Post to .cgSessionEventTap
+  /// - Explicitly release Command key after paste
+  private static func simulatePaste() {
+    if !AXIsProcessTrusted() {
+      let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
+      AXIsProcessTrustedWithOptions(options)
+      return
+    }
+
+    let source = CGEventSource(stateID: .privateState)
+
+    // Key down: V (0x09) with Command flag
+    let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
+    keyDown?.flags = .maskCommand
+    keyDown?.post(tap: .cgSessionEventTap)
+
+    // Key up: V (0x09) with Command flag
+    let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
+    keyUp?.flags = .maskCommand
+    keyUp?.post(tap: .cgSessionEventTap)
+
+    // Explicitly release Command key (0x37) — critical step Alfred does
+    let cmdUp = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: false)
+    cmdUp?.post(tap: .cgSessionEventTap)
   }
 
   // MARK: - Event Monitors
@@ -135,7 +185,8 @@ final class ClipboardPanelController: NSObject {
 
     self.viewModel = ClipboardPanelViewModel(
       clipboardManager: clipboardManager,
-      onDismiss: { [weak self] in self?.hide() }
+      onDismiss: { [weak self] in self?.hide() },
+      onPasteAndDismiss: { [weak self] in self?.hideAndPaste() }
     )
 
     let visualEffectView = NSVisualEffectView()
@@ -215,14 +266,19 @@ final class ClipboardPanelViewModel: ObservableObject {
 
   let clipboardManager: ClipboardManager
   let onDismiss: () -> Void
+  let onPasteAndDismiss: () -> Void
   let pageSize = 30
 
   private var cancellables = Set<AnyCancellable>()
   private var allFilteredItems: [ClipboardItem] = []
 
-  init(clipboardManager: ClipboardManager, onDismiss: @escaping () -> Void) {
+  init(
+    clipboardManager: ClipboardManager, onDismiss: @escaping () -> Void,
+    onPasteAndDismiss: @escaping () -> Void
+  ) {
     self.clipboardManager = clipboardManager
     self.onDismiss = onDismiss
+    self.onPasteAndDismiss = onPasteAndDismiss
     setupBindings()
     refreshDisplay(searchText: "", page: 0, selIdx: 0)
   }
@@ -349,9 +405,12 @@ final class ClipboardPanelViewModel: ObservableObject {
 
   func executeSelected() {
     guard let item = displaySelectedItem else { return }
-    clipboardManager.copyToClipboard(item.content)
-    clipboardManager.pasteItem(item)
-    onDismiss()
+    if item.contentType == .image, let imageData = item.imageData {
+      clipboardManager.copyImageToClipboard(imageData)
+    } else {
+      clipboardManager.copyToClipboard(item.content)
+    }
+    onPasteAndDismiss()
   }
 
   func deleteSelected() {
