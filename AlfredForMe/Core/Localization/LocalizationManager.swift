@@ -246,6 +246,7 @@ struct L10n {
     // MARK: - AI Chat
     "ai.keyword": [.zhHans: "ai", .en: "ai"],
     "ai.askPlaceholder": [.zhHans: "输入你的问题...", .en: "Enter your question..."],
+    "ai.inputPlaceholder": [.zhHans: "输入消息，Enter 发送", .en: "Type a message, Enter to send"],
     "ai.thinking": [.zhHans: "正在思考...", .en: "Thinking..."],
     "ai.askAI": [.zhHans: "问 AI:", .en: "Ask AI:"],
     "ai.chat": [.zhHans: "AI 对话", .en: "AI Chat"],

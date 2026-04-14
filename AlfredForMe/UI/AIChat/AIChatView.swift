@@ -9,7 +9,6 @@ struct AIChatView: View {
   @ObservedObject var l10n = LocalizationManager.shared
   @State private var inputText = ""
   @State private var showSessionList = false
-  @State private var showModelPicker = false
   @State private var attachments: [ChatAttachment] = []
   @FocusState private var isInputFocused: Bool
 
@@ -41,26 +40,20 @@ struct AIChatView: View {
 
       Spacer()
 
-      // Model switcher
-      Button(action: { showModelPicker.toggle() }) {
-        HStack(spacing: 4) {
-          Image(systemName: "sparkles")
-            .font(.system(size: 12))
-          Text("\(engine.activeProviderName) / \(engine.activeModelName)")
-            .font(.system(size: 12))
-            .lineLimit(1)
-          Image(systemName: "chevron.down")
-            .font(.system(size: 9, weight: .semibold))
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .cornerRadius(6)
+      // Current model display (read-only, configure in settings)
+      HStack(spacing: 4) {
+        Image(systemName: "sparkles")
+          .font(.system(size: 12))
+          .foregroundColor(.secondary)
+        Text("\(engine.activeProviderName) / \(engine.activeModelName)")
+          .font(.system(size: 12))
+          .foregroundColor(.secondary)
+          .lineLimit(1)
       }
-      .buttonStyle(.borderless)
-      .popover(isPresented: $showModelPicker) {
-        modelPickerPopover
-      }
+      .padding(.horizontal, 10)
+      .padding(.vertical, 4)
+      .background(Color(nsColor: .controlBackgroundColor))
+      .cornerRadius(6)
 
       Spacer()
 
@@ -76,64 +69,6 @@ struct AIChatView: View {
   }
 
   // MARK: - Model Picker
-
-  private var modelPickerPopover: some View {
-    VStack(alignment: .leading, spacing: 0) {
-      Text(l10n.t("ai.selectModel"))
-        .font(.system(size: 13, weight: .semibold))
-        .padding(8)
-      Divider()
-
-      ScrollView {
-        LazyVStack(alignment: .leading, spacing: 2) {
-          let enabledProviders = engine.config.providers.filter(\.isEnabled)
-          ForEach(enabledProviders) { provider in
-            Text(provider.name)
-              .font(.system(size: 11, weight: .semibold))
-              .foregroundColor(.secondary)
-              .padding(.horizontal, 8)
-              .padding(.top, 8)
-              .padding(.bottom, 2)
-
-            ForEach(provider.models) { model in
-              let isActive =
-                engine.config.activeProviderId == provider.id
-                && engine.config.activeModelId == model.id
-              HStack {
-                Text(model.name)
-                  .font(.system(size: 12))
-                Spacer()
-                if isActive {
-                  Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.accentColor)
-                }
-              }
-              .padding(.horizontal, 12)
-              .padding(.vertical, 5)
-              .background(isActive ? Color.accentColor.opacity(0.1) : Color.clear)
-              .cornerRadius(4)
-              .contentShape(Rectangle())
-              .onTapGesture {
-                engine.switchTo(providerId: provider.id, modelId: model.id)
-                showModelPicker = false
-              }
-            }
-          }
-
-          if enabledProviders.isEmpty {
-            Text(l10n.t("ai.noProviderHint"))
-              .font(.system(size: 12))
-              .foregroundColor(.secondary)
-              .padding()
-          }
-        }
-        .padding(4)
-      }
-      .frame(maxHeight: 300)
-    }
-    .frame(width: 250)
-  }
 
   // MARK: - Session List
 
@@ -241,20 +176,20 @@ struct AIChatView: View {
   }
 
   private var emptyStateView: some View {
-    VStack(spacing: 12) {
-      Image(systemName: "bubble.left.and.bubble.right")
-        .font(.system(size: 40))
-        .foregroundColor(.secondary.opacity(0.5))
+    VStack(spacing: 16) {
+      Spacer()
+
+      Image(nsImage: NSApp.applicationIconImage ?? NSImage())
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(width: 48, height: 48)
+
       Text(l10n.t("ai.startChat"))
-        .font(.title3)
-        .foregroundColor(.secondary)
-      Text(l10n.t("ai.startChatHint"))
-        .font(.caption)
-        .foregroundColor(.secondary.opacity(0.7))
-        .multilineTextAlignment(.center)
+        .font(.system(size: 20, weight: .semibold))
+
+      Spacer()
     }
     .frame(maxWidth: .infinity)
-    .padding(.top, 60)
   }
 
   private var streamingBubble: some View {
@@ -307,7 +242,7 @@ struct AIChatView: View {
   // MARK: - Input Area
 
   private var inputArea: some View {
-    VStack(spacing: 6) {
+    VStack(spacing: 0) {
       // Attachment preview
       if !attachments.isEmpty {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -334,64 +269,69 @@ struct AIChatView: View {
               .cornerRadius(6)
             }
           }
+          .padding(.horizontal, 16)
+          .padding(.top, 8)
         }
-        .padding(.horizontal, 12)
       }
 
-      HStack(alignment: .bottom, spacing: 8) {
-        // Attachment button
-        Button(action: pickAttachment) {
-          Image(systemName: "paperclip")
-            .font(.system(size: 14))
-            .foregroundColor(.secondary)
-        }
-        .buttonStyle(.borderless)
-        .help(l10n.t("ai.addAttachment"))
+      VStack(spacing: 0) {
+        // Text input
+        ChatInputTextField(
+          text: $inputText,
+          placeholder: l10n.t("ai.inputPlaceholder"),
+          onSubmit: sendMessage
+        )
+        .frame(minHeight: 24, maxHeight: 80)
+        .padding(.horizontal, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 6)
 
-        TextEditor(text: $inputText)
-          .font(.system(size: 13))
-          .frame(minHeight: 36, maxHeight: 100)
-          .padding(4)
-          .overlay(
-            RoundedRectangle(cornerRadius: 8)
-              .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-          )
-          .focused($isInputFocused)
-          .onAppear { isInputFocused = true }
+        // Bottom row: attachment + send
+        HStack {
+          Button(action: pickAttachment) {
+            Image(systemName: "paperclip")
+              .font(.system(size: 15))
+              .foregroundColor(.secondary)
+          }
+          .buttonStyle(.borderless)
+          .help(l10n.t("ai.addAttachment"))
 
-        VStack(spacing: 4) {
+          Spacer()
+
           if engine.isGenerating {
             Button(action: { engine.stopGenerating() }) {
-              Image(systemName: "stop.fill")
-                .font(.system(size: 14))
+              Image(systemName: "stop.circle.fill")
+                .font(.system(size: 22))
                 .foregroundColor(.red)
             }
             .buttonStyle(.borderless)
             .help(l10n.t("ai.stop"))
           } else {
             Button(action: sendMessage) {
-              Image(systemName: "paperplane.fill")
-                .font(.system(size: 14))
+              Image(systemName: "arrow.up.circle.fill")
+                .font(.system(size: 22))
                 .foregroundColor(
                   inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    ? .secondary : .accentColor)
+                    ? Color.secondary.opacity(0.4) : .accentColor)
             }
             .buttonStyle(.borderless)
             .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .keyboardShortcut(.return, modifiers: .command)
             .help(l10n.t("ai.send"))
           }
-
-          Button(action: { engine.clearCurrentSession() }) {
-            Image(systemName: "trash")
-              .font(.system(size: 12))
-              .foregroundColor(.secondary)
-          }
-          .buttonStyle(.borderless)
-          .help("清空")
         }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 10)
       }
-      .padding(12)
+      .background(
+        RoundedRectangle(cornerRadius: 16)
+          .fill(Color(nsColor: .controlBackgroundColor))
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 16)
+          .stroke(Color.secondary.opacity(0.2), lineWidth: 0.5)
+      )
+      .padding(.horizontal, 12)
+      .padding(.vertical, 10)
     }
   }
 
@@ -499,6 +439,100 @@ struct MessageBubbleView: View {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(message.content, forType: .string)
       }
+    }
+  }
+}
+
+// MARK: - Chat Input TextField (Enter to send, Shift+Enter for newline)
+
+struct ChatInputTextField: NSViewRepresentable {
+  @Binding var text: String
+  var placeholder: String
+  var onSubmit: () -> Void
+
+  func makeCoordinator() -> Coordinator {
+    Coordinator(self)
+  }
+
+  func makeNSView(context: Context) -> NSScrollView {
+    let scrollView = NSTextView.scrollableTextView()
+    let textView = scrollView.documentView as! NSTextView
+    textView.delegate = context.coordinator
+    textView.font = .systemFont(ofSize: 13)
+    textView.textColor = .labelColor
+    textView.backgroundColor = .clear
+    textView.drawsBackground = false
+    textView.isRichText = false
+    textView.isAutomaticQuoteSubstitutionEnabled = false
+    textView.textContainerInset = NSSize(width: 0, height: 2)
+    textView.textContainer?.lineFragmentPadding = 0
+    scrollView.drawsBackground = false
+    scrollView.hasVerticalScroller = false
+    scrollView.borderType = .noBorder
+    return scrollView
+  }
+
+  func updateNSView(_ scrollView: NSScrollView, context: Context) {
+    let textView = scrollView.documentView as! NSTextView
+    context.coordinator.parent = self
+    if textView.string != text {
+      textView.string = text
+    }
+    // Update placeholder visibility
+    context.coordinator.updatePlaceholder(textView)
+  }
+
+  class Coordinator: NSObject, NSTextViewDelegate {
+    var parent: ChatInputTextField
+    var placeholderLabel: NSTextField?
+
+    init(_ parent: ChatInputTextField) {
+      self.parent = parent
+    }
+
+    func textDidChange(_ notification: Notification) {
+      guard let textView = notification.object as? NSTextView else { return }
+      parent.text = textView.string
+      updatePlaceholder(textView)
+    }
+
+    func updatePlaceholder(_ textView: NSTextView) {
+      if textView.string.isEmpty {
+        if placeholderLabel == nil {
+          let label = NSTextField(labelWithString: parent.placeholder)
+          label.font = .systemFont(ofSize: 13)
+          label.textColor = .placeholderTextColor
+          label.isEditable = false
+          label.isBordered = false
+          label.drawsBackground = false
+          label.translatesAutoresizingMaskIntoConstraints = false
+          textView.addSubview(label)
+          NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: textView.leadingAnchor, constant: textView.textContainerInset.width + (textView.textContainer?.lineFragmentPadding ?? 0)),
+            label.topAnchor.constraint(equalTo: textView.topAnchor, constant: textView.textContainerInset.height),
+          ])
+          placeholderLabel = label
+        }
+        placeholderLabel?.stringValue = parent.placeholder
+        placeholderLabel?.isHidden = false
+      } else {
+        placeholderLabel?.isHidden = true
+      }
+    }
+
+    func textView(
+      _ textView: NSTextView, doCommandBy commandSelector: Selector
+    ) -> Bool {
+      if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+        // Shift+Enter → newline, Enter → send
+        if NSApp.currentEvent?.modifierFlags.contains(.shift) == true {
+          textView.insertNewlineIgnoringFieldEditor(nil)
+          return true
+        }
+        parent.onSubmit()
+        return true
+      }
+      return false
     }
   }
 }
