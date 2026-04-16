@@ -31,8 +31,6 @@ final class ThemeManager: ObservableObject {
     }
   }
 
-  private var appearanceObserver: NSObjectProtocol?
-
   private init() {
     let themes = AppTheme.builtInThemes
     self.availableThemes = themes
@@ -55,7 +53,6 @@ final class ThemeManager: ObservableObject {
     let savedThemeName = SettingsManager.shared.selectedTheme
     self.current = themes.first { $0.name == savedThemeName } ?? themes[0]
 
-    setupAppearanceObserver()
     applyAppearanceMode()
   }
 
@@ -68,40 +65,14 @@ final class ThemeManager: ObservableObject {
     availableThemes.append(theme)
   }
 
-  private func setupAppearanceObserver() {
-    appearanceObserver = DistributedNotificationCenter.default().addObserver(
-      forName: NSNotification.Name("AppleInterfaceThemeChangedNotification"),
-      object: nil,
-      queue: .main
-    ) { [weak self] _ in
-      guard let self = self, self.appearanceMode == .system else { return }
-      self.applySystemAppearance()
-    }
-  }
-
   private func applyAppearanceMode() {
     switch appearanceMode {
     case .light:
       NSApp.appearance = NSAppearance(named: .aqua)
-      apply(theme: .macOSLight)
     case .dark:
       NSApp.appearance = NSAppearance(named: .darkAqua)
-      apply(theme: .macOSDark)
     case .system:
       NSApp.appearance = nil  // Follow system
-      applySystemAppearance()
-    }
-  }
-
-  private func applySystemAppearance() {
-    let isDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-    let theme: AppTheme = isDark ? .macOSDark : .macOSLight
-    apply(theme: theme)
-  }
-
-  deinit {
-    if let observer = appearanceObserver {
-      DistributedNotificationCenter.default().removeObserver(observer)
     }
   }
 }

@@ -15,6 +15,7 @@ final class TerminalPlugin: SearchPlugin {
     }
 
     func search(query: SearchQuery) async -> [SearchResult] {
+        let l10n = LocalizationManager.shared
         var command = query.raw
         if command.hasPrefix(">") || command.hasPrefix("$") {
             command = String(command.dropFirst()).trimmingCharacters(in: .whitespaces)
@@ -24,8 +25,8 @@ final class TerminalPlugin: SearchPlugin {
             return [
                 SearchResult(
                     id: "terminal:placeholder",
-                    title: "输入要执行的命令...",
-                    subtitle: "> <命令>",
+                    title: l10n.t("plugin.terminal.inputCmd"),
+                    subtitle: l10n.t("plugin.terminal.cmdHint"),
                     icon: NSImage(systemSymbolName: "terminal.fill", accessibilityDescription: nil),
                     category: .terminal,
                     relevanceScore: 0.9,
@@ -40,28 +41,29 @@ final class TerminalPlugin: SearchPlugin {
         return [
             SearchResult(
                 id: "terminal:run:\(command)",
-                title: "运行: \(command)",
-                subtitle: "在 \(terminalApp) 中执行",
+                title: "\(l10n.t("plugin.terminal.run")) \(command)",
+                subtitle: l10n.t("plugin.terminal.runIn").replacingOccurrences(
+                    of: "{app}", with: terminalApp),
                 icon: NSImage(systemSymbolName: "terminal.fill", accessibilityDescription: nil),
                 category: .terminal,
                 relevanceScore: 0.95,
                 plugin: id,
                 userData: [
                     "command": command,
-                    "action": "run"
+                    "action": "run",
                 ]
             ),
             SearchResult(
                 id: "terminal:copy:\(command)",
-                title: "复制命令: \(command)",
-                subtitle: "复制到剪贴板",
+                title: "\(l10n.t("plugin.terminal.copyCmd")) \(command)",
+                subtitle: l10n.t("plugin.terminal.copyToClip"),
                 icon: NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: nil),
                 category: .terminal,
                 relevanceScore: 0.8,
                 plugin: id,
                 userData: [
                     "command": command,
-                    "action": "copy"
+                    "action": "copy",
                 ]
             ),
         ]
@@ -69,7 +71,8 @@ final class TerminalPlugin: SearchPlugin {
 
     func execute(result: SearchResult) async {
         guard let command = result.userData["command"],
-              let action = result.userData["action"] else { return }
+            let action = result.userData["action"]
+        else { return }
 
         switch action {
         case "run":
@@ -86,15 +89,16 @@ final class TerminalPlugin: SearchPlugin {
 
     func actions(for result: SearchResult) -> [ResultAction] {
         guard let command = result.userData["command"] else { return [] }
+        let l10n = LocalizationManager.shared
 
         return [
-            ResultAction(title: "在终端中执行", shortcut: "⏎") { [weak self] in
+            ResultAction(title: l10n.t("action.runInTerminal"), shortcut: "⏎") { [weak self] in
                 self?.runInTerminal(command: command)
             },
-            ResultAction(title: "在 iTerm 中执行") { [weak self] in
+            ResultAction(title: l10n.t("action.runInITerm")) { [weak self] in
                 self?.runInITerm(command: command)
             },
-            ResultAction(title: "复制命令") {
+            ResultAction(title: l10n.t("action.copyCommand")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(command, forType: .string)
             },
@@ -112,11 +116,11 @@ final class TerminalPlugin: SearchPlugin {
             runInITerm(command: command)
         default:
             let script = """
-                tell application "Terminal"
-                    activate
-                    do script "\(escapedCommand)"
-                end tell
-            """
+                    tell application "Terminal"
+                        activate
+                        do script "\(escapedCommand)"
+                    end tell
+                """
             runAppleScript(script)
         }
     }
@@ -124,16 +128,16 @@ final class TerminalPlugin: SearchPlugin {
     private func runInITerm(command: String) {
         let escapedCommand = command.replacingOccurrences(of: "\"", with: "\\\"")
         let script = """
-            tell application "iTerm2"
-                activate
-                tell current window
-                    create tab with default profile
-                    tell current session
-                        write text "\(escapedCommand)"
+                tell application "iTerm2"
+                    activate
+                    tell current window
+                        create tab with default profile
+                        tell current session
+                            write text "\(escapedCommand)"
+                        end tell
                     end tell
                 end tell
-            end tell
-        """
+            """
         runAppleScript(script)
     }
 

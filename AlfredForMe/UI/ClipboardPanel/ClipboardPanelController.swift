@@ -13,6 +13,8 @@ final class ClipboardPanelController: NSObject {
   private var globalClickMonitor: Any?
   private var localKeyMonitor: Any?
   private var previousApp: NSRunningApplication?
+  private var visualEffectView: NSVisualEffectView!
+  private var themeCancellable: AnyCancellable?
 
   init(clipboardManager: ClipboardManager, themeManager: ThemeManager) {
     self.clipboardManager = clipboardManager
@@ -196,6 +198,7 @@ final class ClipboardPanelController: NSObject {
     visualEffectView.wantsLayer = true
     visualEffectView.layer?.cornerRadius = 14
     visualEffectView.layer?.masksToBounds = true
+    self.visualEffectView = visualEffectView
 
     let contentView = ClipboardPanelView(viewModel: viewModel)
       .environmentObject(themeManager)
@@ -222,6 +225,23 @@ final class ClipboardPanelController: NSObject {
 
     panel.contentView = containerView
     self.panel = panel
+
+    // Update visual effect material when theme changes
+    updateVisualEffectMaterial()
+    themeCancellable = themeManager.$current
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] _ in
+        self?.updateVisualEffectMaterial()
+      }
+  }
+
+  private func updateVisualEffectMaterial() {
+    let theme = themeManager.current
+    let isDark =
+      theme.id.contains("dark") || theme.id == "monokai" || theme.id == "nord"
+      || theme.id == "dracula" || theme.id == "one-dark" || theme.id == "solarized-dark"
+    visualEffectView?.appearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
+    visualEffectView?.material = .hudWindow
   }
 
   private func positionPanel() {

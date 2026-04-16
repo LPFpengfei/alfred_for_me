@@ -340,6 +340,114 @@ struct L10n {
     // MARK: - Clipboard Hotkey
     "clipboard.hotkey": [.zhHans: "剪贴板快捷键", .en: "Clipboard Hotkey"],
     "clipboard.hotkeyDesc": [.zhHans: "快速打开剪贴板历史:", .en: "Quick open clipboard history:"],
+
+    // MARK: - Settings Sections
+    "settings.section.basic": [.zhHans: "基本", .en: "Basic"],
+    "settings.section.search": [.zhHans: "搜索", .en: "Search"],
+    "settings.section.features": [.zhHans: "功能", .en: "Features"],
+    "settings.section.other": [.zhHans: "其他", .en: "Other"],
+
+    // MARK: - General Settings (extra)
+    "general.clipboardHotkey": [.zhHans: "剪贴板快捷键", .en: "Clipboard Hotkey"],
+    "general.aiChatHotkey": [.zhHans: "AI 对话快捷键", .en: "AI Chat Hotkey"],
+    "general.pressHotkey": [.zhHans: "按下快捷键...", .en: "Press hotkey..."],
+
+    // MARK: - Appearance (extra)
+    "appearance.fontAndIcon": [.zhHans: "字体与图标", .en: "Font & Icon"],
+
+    // MARK: - Search (extra)
+    "search.noScope": [.zhHans: "暂无搜索范围", .en: "No search scope"],
+    "search.appFilesWeb": [
+      .zhHans: "搜索应用、文件、网页...", .en: "Search apps, files, web...",
+    ],
+
+    // MARK: - Web Search (extra)
+    "webSearch.engine": [.zhHans: "搜索引擎", .en: "Search Engine"],
+    "webSearch.nameLabel": [.zhHans: "名称", .en: "Name"],
+    "webSearch.keywordLabel": [.zhHans: "关键词", .en: "Keyword"],
+    "webSearch.urlTemplateLabel": [.zhHans: "URL 模板", .en: "URL Template"],
+    "webSearch.urlTemplateHint": [
+      .zhHans: "使用 {query} 作为搜索词占位符",
+      .en: "Use {query} as search term placeholder",
+    ],
+
+    // MARK: - Plugins (extra)
+    "plugins.installed": [.zhHans: "已安装插件", .en: "Installed Plugins"],
+    "plugins.priorityLabel": [.zhHans: "优先级", .en: "Priority"],
+
+    // MARK: - Snippets (extra)
+    "snippet.empty": [.zhHans: "暂无代码片段", .en: "No snippets"],
+    "snippet.nameLabel": [.zhHans: "名称", .en: "Name"],
+    "snippet.namePlaceholder": [.zhHans: "片段名称", .en: "Snippet name"],
+    "snippet.keywordLabel": [.zhHans: "关键词", .en: "Keyword"],
+    "snippet.contentLabel": [.zhHans: "内容", .en: "Content"],
+
+    // MARK: - Advanced (extra)
+    "advanced.versionInfo": [.zhHans: "版本信息", .en: "Version Info"],
+    "advanced.versionLabel": [.zhHans: "版本", .en: "Version"],
+    "advanced.dataManagement": [.zhHans: "数据管理", .en: "Data Management"],
+    "advanced.exportSettings": [.zhHans: "导出设置", .en: "Export Settings"],
+    "advanced.exportBtn": [.zhHans: "导出...", .en: "Export..."],
+    "advanced.importSettings": [.zhHans: "导入设置", .en: "Import Settings"],
+    "advanced.importBtn": [.zhHans: "导入...", .en: "Import..."],
+    "advanced.resetWarning": [
+      .zhHans: "恢复所有设置为默认值，此操作不可撤销",
+      .en: "Reset all settings to defaults. This cannot be undone",
+    ],
+    "advanced.resetBtn": [.zhHans: "重置", .en: "Reset"],
+
+    // MARK: - Clipboard Content Types
+    "clipboard.typeText": [.zhHans: "文本", .en: "Text"],
+    "clipboard.typeUrl": [.zhHans: "URL", .en: "URL"],
+    "clipboard.typePath": [.zhHans: "路径", .en: "Path"],
+    "clipboard.typeImage": [.zhHans: "图片", .en: "Image"],
+    "clipboard.typeColor": [.zhHans: "颜色", .en: "Color"],
+
+    // MARK: - Dictionary Plugin (extra)
+    "plugin.dict.defineHint": [.zhHans: "define <单词>", .en: "define <word>"],
+
+    // MARK: - Terminal Plugin (extra)
+    "plugin.terminal.cmdHint": [.zhHans: "> <命令>", .en: "> <command>"],
+
+    // MARK: - AI Protocol Types
+    "ai.protocolType.openai": [.zhHans: "OpenAI 兼容", .en: "OpenAI Compatible"],
+    "ai.protocolType.anthropic": [.zhHans: "Anthropic 兼容", .en: "Anthropic Compatible"],
+    "ai.protocolType.openaiDesc": [
+      .zhHans: "兼容 OpenAI Chat Completions API（OpenAI、DeepSeek、Moonshot、通义千问、本地 Ollama 等）",
+      .en:
+        "Compatible with OpenAI Chat Completions API (OpenAI, DeepSeek, Moonshot, Qwen, local Ollama, etc.)",
+    ],
+    "ai.protocolType.anthropicDesc": [
+      .zhHans: "兼容 Anthropic Messages API（Claude 系列）",
+      .en: "Compatible with Anthropic Messages API (Claude series)",
+    ],
+
+    // MARK: - AI Errors
+    "ai.error.noApiKey": [.zhHans: "API Key 未配置", .en: "API Key not configured"],
+    "ai.error.invalidEndpoint": [.zhHans: "无效的 API 端点", .en: "Invalid API endpoint"],
+    "ai.error.network": [.zhHans: "网络错误", .en: "Network error"],
+    "ai.error.api": [.zhHans: "API 错误", .en: "API error"],
+    "ai.error.decoding": [.zhHans: "解码错误", .en: "Decoding error"],
+    "ai.error.cancelled": [.zhHans: "请求已取消", .en: "Request cancelled"],
+    "ai.error.unauthorized": [
+      .zhHans: "未授权 - 请检查 API Key", .en: "Unauthorized - check API Key",
+    ],
+    "ai.error.rateLimited": [.zhHans: "请求频率受限", .en: "Rate limited"],
+    "ai.error.modelNotFound": [.zhHans: "模型未找到", .en: "Model not found"],
+    "ai.error.invalidResponse": [.zhHans: "无效的响应", .en: "Invalid response"],
+    "ai.error.config": [.zhHans: "配置错误", .en: "Configuration error"],
+    "ai.error.noProvider": [.zhHans: "未配置 AI 服务商", .en: "No AI provider configured"],
+
+    // MARK: - AI Engine (extra)
+    "ai.notConfigured": [.zhHans: "未配置", .en: "Not configured"],
+    "ai.notSelected": [.zhHans: "未选择", .en: "Not selected"],
+    "ai.configureFirst": [
+      .zhHans: "⚠️ 请先在设置中配置 AI 服务商",
+      .en: "⚠️ Please configure an AI provider in settings first",
+    ],
+    "ai.errorPrefix": [.zhHans: "⚠️ 错误:", .en: "⚠️ Error:"],
+    "ai.newChatTitle": [.zhHans: "新建对话", .en: "New Chat"],
+    "ai.providerPlaceholder": [.zhHans: "如: OpenAI, DeepSeek", .en: "e.g. OpenAI, DeepSeek"],
   ]
 
   static func string(_ key: String, language: AppLanguage) -> String {

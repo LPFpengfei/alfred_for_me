@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 // MARK: - Status Bar Controller
@@ -6,11 +7,18 @@ import SwiftUI
 final class StatusBarController: NSObject {
   private var statusItem: NSStatusItem!
   private weak var searchPanelController: SearchPanelController?
+  private var languageCancellable: AnyCancellable?
 
   init(searchPanelController: SearchPanelController) {
     self.searchPanelController = searchPanelController
     super.init()
     setupStatusBar()
+    languageCancellable = LocalizationManager.shared.$language
+      .dropFirst()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] _ in
+        self?.rebuildMenu()
+      }
   }
 
   private func setupStatusBar() {
@@ -31,6 +39,10 @@ final class StatusBarController: NSObject {
       }
     }
 
+    rebuildMenu()
+  }
+
+  private func rebuildMenu() {
     let l10n = LocalizationManager.shared
     let menu = NSMenu()
     menu.addItem(

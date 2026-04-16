@@ -19,8 +19,13 @@ final class CalculatorPlugin: SearchPlugin {
     let text = query.raw.trimmingCharacters(in: .whitespaces)
     guard !text.isEmpty else { return false }
 
-    // Check if it starts with = or looks like math
+    // Only trigger with = prefix, or pure math expressions
     if text.hasPrefix("=") { return true }
+
+    // Must start with a digit or opening paren, and only contain math chars
+    guard let first = text.first, first.isNumber || first == "(" || first == "." else {
+      return false
+    }
 
     let range = NSRange(text.startIndex..., in: text)
     return mathPattern.firstMatch(in: text, range: range) != nil
@@ -72,11 +77,11 @@ final class CalculatorPlugin: SearchPlugin {
     guard let value = result.userData["result"] else { return [] }
 
     return [
-      ResultAction(title: "复制结果", shortcut: "⏎") {
+      ResultAction(title: LocalizationManager.shared.t("action.copyResult"), shortcut: "⏎") {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(value, forType: .string)
       },
-      ResultAction(title: "复制为整数") {
+      ResultAction(title: LocalizationManager.shared.t("action.copyAsInt")) {
         if let doubleVal = Double(value) {
           let intStr = String(Int(doubleVal))
           NSPasteboard.general.clearContents()

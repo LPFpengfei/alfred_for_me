@@ -11,127 +11,143 @@ final class SystemCommandPlugin: SearchPlugin {
 
     private let commands: [SystemCommand] = [
         SystemCommand(
-            name: "锁定屏幕",
-            aliases: ["lock", "锁屏", "lock screen"],
+            nameKey: "sys.lockScreen",
+            aliases: ["lock", "锁屏", "锁定屏幕", "lock screen"],
             icon: "lock.fill",
-            description: "锁定 Mac 屏幕",
+            descKey: "sys.lockScreenDesc",
             action: .lockScreen
         ),
         SystemCommand(
-            name: "睡眠",
-            aliases: ["sleep", "休眠"],
+            nameKey: "sys.sleep",
+            aliases: ["sleep", "休眠", "睡眠"],
             icon: "moon.fill",
-            description: "使 Mac 进入睡眠模式",
+            descKey: "sys.sleepDesc",
             action: .sleep
         ),
         SystemCommand(
-            name: "重启",
-            aliases: ["restart", "reboot", "重新启动"],
+            nameKey: "sys.restart",
+            aliases: ["restart", "reboot", "重新启动", "重启"],
             icon: "arrow.clockwise.circle.fill",
-            description: "重启 Mac",
+            descKey: "sys.restartDesc",
             action: .restart
         ),
         SystemCommand(
-            name: "关机",
-            aliases: ["shutdown", "关闭", "power off"],
+            nameKey: "sys.shutdown",
+            aliases: ["shutdown", "关闭", "关机", "power off"],
             icon: "power.circle.fill",
-            description: "关闭 Mac",
+            descKey: "sys.shutdownDesc",
             action: .shutdown
         ),
         SystemCommand(
-            name: "注销",
-            aliases: ["logout", "log out", "登出"],
+            nameKey: "sys.logout",
+            aliases: ["logout", "log out", "登出", "注销"],
             icon: "rectangle.portrait.and.arrow.right.fill",
-            description: "注销当前用户",
+            descKey: "sys.logoutDesc",
             action: .logout
         ),
         SystemCommand(
-            name: "清空废纸篓",
-            aliases: ["empty trash", "清空垃圾桶"],
+            nameKey: "sys.emptyTrash",
+            aliases: ["empty trash", "清空垃圾桶", "清空废纸篓"],
             icon: "trash.fill",
-            description: "永久删除废纸篓中的所有文件",
+            descKey: "sys.emptyTrashDesc",
             action: .emptyTrash
         ),
         SystemCommand(
-            name: "屏幕保护程序",
-            aliases: ["screensaver", "screen saver", "屏保"],
+            nameKey: "sys.screensaver",
+            aliases: ["screensaver", "screen saver", "屏保", "屏幕保护程序"],
             icon: "sparkles.tv.fill",
-            description: "启动屏幕保护程序",
+            descKey: "sys.screensaverDesc",
             action: .screensaver
         ),
         SystemCommand(
-            name: "显示桌面",
-            aliases: ["show desktop", "桌面"],
+            nameKey: "sys.showDesktop",
+            aliases: ["show desktop", "桌面", "显示桌面"],
             icon: "desktopcomputer",
-            description: "显示桌面",
+            descKey: "sys.showDesktopDesc",
             action: .showDesktop
         ),
         SystemCommand(
-            name: "清空剪贴板",
-            aliases: ["clear clipboard", "清空粘贴板"],
+            nameKey: "sys.clearClipboard",
+            aliases: ["clear clipboard", "清空粘贴板", "清空剪贴板"],
             icon: "doc.on.clipboard",
-            description: "清空系统剪贴板内容",
+            descKey: "sys.clearClipboardDesc",
             action: .clearClipboard
         ),
         SystemCommand(
-            name: "切换暗色模式",
-            aliases: ["dark mode", "toggle dark", "暗色", "深色模式"],
+            nameKey: "sys.toggleDarkMode",
+            aliases: ["dark mode", "toggle dark", "暗色", "深色模式", "切换暗色模式"],
             icon: "circle.lefthalf.filled",
-            description: "切换系统暗色/亮色模式",
+            descKey: "sys.toggleDarkModeDesc",
             action: .toggleDarkMode
         ),
         SystemCommand(
-            name: "勿扰模式",
-            aliases: ["do not disturb", "dnd", "请勿打扰"],
+            nameKey: "sys.dnd",
+            aliases: ["do not disturb", "dnd", "请勿打扰", "勿扰模式"],
             icon: "moon.circle.fill",
-            description: "切换勿扰模式",
+            descKey: "sys.dndDesc",
             action: .doNotDisturb
         ),
         SystemCommand(
-            name: "退出所有应用",
-            aliases: ["quit all", "关闭所有", "quit all apps"],
+            nameKey: "sys.quitAll",
+            aliases: ["quit all", "关闭所有", "退出所有应用", "quit all apps"],
             icon: "xmark.circle.fill",
-            description: "退出所有正在运行的应用",
+            descKey: "sys.quitAllDesc",
             action: .quitAllApps
         ),
         SystemCommand(
-            name: "强制退出",
-            aliases: ["force quit", "强制关闭"],
+            nameKey: "sys.forceQuit",
+            aliases: ["force quit", "强制关闭", "强制退出"],
             icon: "xmark.octagon.fill",
-            description: "打开强制退出窗口",
+            descKey: "sys.forceQuitDesc",
             action: .forceQuit
         ),
         SystemCommand(
-            name: "系统偏好设置",
-            aliases: ["system preferences", "settings", "系统设置"],
+            nameKey: "sys.sysPrefs",
+            aliases: ["system preferences", "settings", "系统设置", "系统偏好设置"],
             icon: "gearshape.fill",
-            description: "打开系统设置",
+            descKey: "sys.sysPrefsDesc",
             action: .systemPreferences
         ),
         SystemCommand(
-            name: "弹出所有磁盘",
-            aliases: ["eject", "eject all", "弹出"],
+            nameKey: "sys.ejectAll",
+            aliases: ["eject", "eject all", "弹出", "弹出所有磁盘"],
             icon: "eject.fill",
-            description: "弹出所有可弹出的磁盘",
+            descKey: "sys.ejectAllDesc",
             action: .ejectAll
         ),
     ]
 
     func canHandle(query: SearchQuery) -> Bool {
-        !query.raw.isEmpty && !query.isKeywordTrigger
+        guard !query.raw.isEmpty && !query.isKeywordTrigger else { return false }
+        // Only activate if the query actually matches at least one command
+        let searchText = query.raw.lowercased()
+        return commands.contains { cmd in
+            cmd.name.lowercased().hasPrefix(searchText)
+                || cmd.aliases.contains(where: { $0.lowercased().hasPrefix(searchText) })
+                || searchText.count >= 2
+                    && (cmd.name.lowercased().contains(searchText)
+                        || cmd.aliases.contains(where: { $0.lowercased().contains(searchText) }))
+        }
     }
 
     func search(query: SearchQuery) async -> [SearchResult] {
         let searchText = query.raw.lowercased()
 
         return commands.compactMap { cmd in
-            let matches = cmd.name.lowercased().contains(searchText) ||
-                cmd.aliases.contains(where: { $0.lowercased().contains(searchText) })
+            let exactMatch =
+                cmd.name.lowercased() == searchText
+                || cmd.aliases.contains(where: { $0.lowercased() == searchText })
+            let prefixMatch =
+                cmd.name.lowercased().hasPrefix(searchText)
+                || cmd.aliases.contains(where: { $0.lowercased().hasPrefix(searchText) })
+            let containsMatch =
+                searchText.count >= 2
+                && (cmd.name.lowercased().contains(searchText)
+                    || cmd.aliases.contains(where: { $0.lowercased().contains(searchText) }))
 
-            guard matches else { return nil }
+            guard exactMatch || prefixMatch || containsMatch else { return nil }
 
-            let exactMatch = cmd.name.lowercased() == searchText || cmd.aliases.contains(where: { $0.lowercased() == searchText })
-            let score = exactMatch ? 0.95 : 0.7
+            let score = exactMatch ? 0.95 : (prefixMatch ? 0.8 : 0.6)
 
             return SearchResult(
                 id: "system:\(cmd.action.rawValue)",
@@ -148,7 +164,8 @@ final class SystemCommandPlugin: SearchPlugin {
 
     func execute(result: SearchResult) async {
         guard let actionStr = result.userData["action"],
-              let action = SystemAction(rawValue: actionStr) else { return }
+            let action = SystemAction(rawValue: actionStr)
+        else { return }
 
         await MainActor.run {
             performAction(action)
@@ -160,7 +177,9 @@ final class SystemCommandPlugin: SearchPlugin {
     private func performAction(_ action: SystemAction) {
         switch action {
         case .lockScreen:
-            runAppleScript("tell application \"System Events\" to keystroke \"q\" using {command down, control down}")
+            runAppleScript(
+                "tell application \"System Events\" to keystroke \"q\" using {command down, control down}"
+            )
 
         case .sleep:
             runAppleScript("tell application \"System Events\" to sleep")
@@ -184,56 +203,62 @@ final class SystemCommandPlugin: SearchPlugin {
             try? task.run()
 
         case .showDesktop:
-            runAppleScript("""
-                tell application "System Events"
-                    key code 103
-                end tell
-            """)
+            runAppleScript(
+                """
+                    tell application "System Events"
+                        key code 103
+                    end tell
+                """)
 
         case .clearClipboard:
             NSPasteboard.general.clearContents()
 
         case .toggleDarkMode:
-            runAppleScript("""
-                tell application "System Events"
-                    tell appearance preferences to set dark mode to not dark mode
-                end tell
-            """)
+            runAppleScript(
+                """
+                    tell application "System Events"
+                        tell appearance preferences to set dark mode to not dark mode
+                    end tell
+                """)
 
         case .doNotDisturb:
             // macOS Monterey+ uses Focus
-            runAppleScript("""
-                tell application "System Events"
-                    tell process "ControlCenter"
-                        click menu bar item "Focus" of menu bar 1
+            runAppleScript(
+                """
+                    tell application "System Events"
+                        tell process "ControlCenter"
+                            click menu bar item "Focus" of menu bar 1
+                        end tell
                     end tell
-                end tell
-            """)
+                """)
 
         case .quitAllApps:
             let runningApps = NSWorkspace.shared.runningApplications
             for app in runningApps {
                 guard app.activationPolicy == .regular,
-                      app.bundleIdentifier != Bundle.main.bundleIdentifier else { continue }
+                    app.bundleIdentifier != Bundle.main.bundleIdentifier
+                else { continue }
                 app.terminate()
             }
 
         case .forceQuit:
-            runAppleScript("""
-                tell application "System Events"
-                    keystroke "." using {command down, option down}
-                end tell
-            """)
+            runAppleScript(
+                """
+                    tell application "System Events"
+                        keystroke "." using {command down, option down}
+                    end tell
+                """)
 
         case .systemPreferences:
             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:")!)
 
         case .ejectAll:
-            runAppleScript("""
-                tell application "Finder"
-                    eject (every disk whose ejectable is true)
-                end tell
-            """)
+            runAppleScript(
+                """
+                    tell application "Finder"
+                        eject (every disk whose ejectable is true)
+                    end tell
+                """)
         }
     }
 
@@ -252,11 +277,14 @@ final class SystemCommandPlugin: SearchPlugin {
 // MARK: - System Command Model
 
 struct SystemCommand {
-    let name: String
+    let nameKey: String
     let aliases: [String]
     let icon: String
-    let description: String
+    let descKey: String
     let action: SystemAction
+
+    var name: String { LocalizationManager.shared.t(nameKey) }
+    var description: String { LocalizationManager.shared.t(descKey) }
 }
 
 enum SystemAction: String {

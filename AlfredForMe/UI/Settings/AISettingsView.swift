@@ -213,7 +213,7 @@ struct AISettingsView: View {
     SettingsCard(title: l10n.t("ai.chatOptions")) {
       SettingsRow {
         HStack {
-          Text("Temperature")
+          Text(l10n.t("ai.temperature"))
             .font(.system(size: 13))
             .frame(width: 80, alignment: .trailing)
           Slider(value: $engine.config.temperature, in: 0...2, step: 0.1)
@@ -225,7 +225,7 @@ struct AISettingsView: View {
       }
       SettingsRow {
         HStack {
-          Text("Max Tokens")
+          Text(l10n.t("ai.maxTokens"))
             .font(.system(size: 13))
             .frame(width: 80, alignment: .trailing)
           Stepper(
@@ -278,6 +278,7 @@ struct AISettingsView: View {
 struct EditProviderSheet: View {
   @Binding var isPresented: Bool
   @Binding var config: AIConfig
+  @ObservedObject var l10n = LocalizationManager.shared
 
   let provider: AIProviderConfig?
 
@@ -295,22 +296,22 @@ struct EditProviderSheet: View {
     VStack(spacing: 16) {
       Text(
         isEditing
-          ? LocalizationManager.shared.t("ai.editProvider")
-          : LocalizationManager.shared.t("ai.addProvider")
+          ? l10n.t("ai.editProvider")
+          : l10n.t("ai.addProvider")
       )
       .font(.system(size: 16, weight: .semibold))
 
       VStack(alignment: .leading, spacing: 12) {
         HStack {
-          Text(LocalizationManager.shared.t("ai.providerName"))
+          Text(l10n.t("ai.providerName"))
             .font(.system(size: 13))
             .frame(width: 60, alignment: .trailing)
-          TextField("如: OpenAI, DeepSeek", text: $name)
+          TextField(l10n.t("ai.providerPlaceholder"), text: $name)
             .textFieldStyle(.roundedBorder)
         }
 
         HStack {
-          Text(LocalizationManager.shared.t("ai.protocol"))
+          Text(l10n.t("ai.protocol"))
             .font(.system(size: 13))
             .frame(width: 60, alignment: .trailing)
           Picker("", selection: $protocolType) {
@@ -323,7 +324,7 @@ struct EditProviderSheet: View {
         }
 
         HStack {
-          Text(LocalizationManager.shared.t("ai.endpoint"))
+          Text(l10n.t("ai.endpoint"))
             .font(.system(size: 13))
             .frame(width: 60, alignment: .trailing)
           TextField("https://api.example.com/v1", text: $endpoint)
@@ -340,7 +341,7 @@ struct EditProviderSheet: View {
 
         // Models section
         VStack(alignment: .leading, spacing: 8) {
-          Text(LocalizationManager.shared.t("ai.modelList"))
+          Text(l10n.t("ai.modelList"))
             .font(.system(size: 12, weight: .medium))
             .foregroundColor(.secondary)
             .padding(.leading, 68)
@@ -376,10 +377,10 @@ struct EditProviderSheet: View {
           HStack {
             Text("")
               .frame(width: 60)
-            TextField(LocalizationManager.shared.t("ai.modelName"), text: $newModelName)
+            TextField(l10n.t("ai.modelName"), text: $newModelName)
               .textFieldStyle(.roundedBorder)
               .frame(width: 120)
-            TextField(LocalizationManager.shared.t("ai.modelId"), text: $newModelId)
+            TextField(l10n.t("ai.modelId"), text: $newModelId)
               .textFieldStyle(.roundedBorder)
             Button(action: addModel) {
               Image(systemName: "plus.circle.fill")
@@ -394,13 +395,13 @@ struct EditProviderSheet: View {
       Spacer()
 
       HStack {
-        Button(LocalizationManager.shared.t("action.cancel")) { isPresented = false }
+        Button(l10n.t("action.cancel")) { isPresented = false }
           .keyboardShortcut(.cancelAction)
         Spacer()
         Button(
           isEditing
-            ? LocalizationManager.shared.t("action.save")
-            : LocalizationManager.shared.t("action.add")
+            ? l10n.t("action.save")
+            : l10n.t("action.add")
         ) {
           saveProvider()
         }

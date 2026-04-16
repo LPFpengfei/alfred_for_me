@@ -49,6 +49,7 @@ struct SearchPanelView: View {
         )
       }
     }
+    .background(themeManager.current.backgroundColor)
   }
 }
 
@@ -61,6 +62,8 @@ struct SearchBarView: View {
   let onKeyDown: (NSEvent) -> Bool
 
   @EnvironmentObject var themeManager: ThemeManager
+  @EnvironmentObject var settingsManager: SettingsManager
+  @ObservedObject var l10n = LocalizationManager.shared
   @FocusState private var isFocused: Bool
 
   var body: some View {
@@ -71,12 +74,13 @@ struct SearchBarView: View {
 
       SearchTextField(
         text: $queryText,
-        placeholder: "搜索应用、文件、网页...",
+        placeholder: l10n.t("search.appFilesWeb"),
         onSubmit: onSubmit,
         onKeyDown: onKeyDown,
-        theme: themeManager.current
+        theme: themeManager.current,
+        fontSize: settingsManager.fontSize
       )
-      .font(.system(size: themeManager.current.fontSize))
+      .font(.system(size: settingsManager.fontSize))
 
       if isSearching {
         ProgressView()
@@ -101,7 +105,10 @@ struct SearchTextField: NSViewRepresentable {
   let onSubmit: () -> Void
   let onKeyDown: (NSEvent) -> Bool
   let theme: AppTheme
+  var fontSize: CGFloat? = nil
   var onTextChanged: ((String) -> Void)? = nil
+
+  private var effectiveFontSize: CGFloat { fontSize ?? theme.fontSize }
 
   func makeCoordinator() -> Coordinator {
     Coordinator(self)
@@ -115,7 +122,7 @@ struct SearchTextField: NSViewRepresentable {
     textField.isBordered = false
     textField.drawsBackground = false
     textField.focusRingType = .none
-    textField.font = .systemFont(ofSize: theme.fontSize)
+    textField.font = .systemFont(ofSize: effectiveFontSize)
     textField.textColor = NSColor(theme.textColor)
     textField.cell?.wraps = false
     textField.cell?.isScrollable = true
@@ -134,7 +141,7 @@ struct SearchTextField: NSViewRepresentable {
       textField.stringValue = text
     }
     textField.textColor = NSColor(theme.textColor)
-    textField.font = .systemFont(ofSize: theme.fontSize)
+    textField.font = .systemFont(ofSize: effectiveFontSize)
   }
 
   class Coordinator: NSObject, NSTextFieldDelegate {
@@ -256,6 +263,10 @@ struct ResultRowView: View {
   let index: Int
 
   @EnvironmentObject var themeManager: ThemeManager
+  @EnvironmentObject var settingsManager: SettingsManager
+
+  private var iconImageSize: CGFloat { settingsManager.resultIconSize - 6 }
+  private var iconFrameSize: CGFloat { settingsManager.resultIconSize }
 
   var body: some View {
     HStack(spacing: 14) {
@@ -265,14 +276,14 @@ struct ResultRowView: View {
           Image(nsImage: icon)
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .frame(width: 30, height: 30)
+            .frame(width: iconImageSize, height: iconImageSize)
         } else {
           Image(systemName: iconForCategory(result.category))
-            .font(.system(size: 16, weight: .medium))
+            .font(.system(size: iconImageSize * 0.53, weight: .medium))
             .foregroundColor(isSelected ? .white : themeManager.current.accentColor)
         }
       }
-      .frame(width: 36, height: 36)
+      .frame(width: iconFrameSize, height: iconFrameSize)
       .background(
         RoundedRectangle(cornerRadius: 8)
           .fill(

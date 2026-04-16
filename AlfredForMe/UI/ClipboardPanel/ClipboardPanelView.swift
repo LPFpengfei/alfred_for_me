@@ -61,6 +61,7 @@ struct ClipboardPanelView: View {
         onNextPage: { viewModel.nextPage() }
       )
     }
+    .background(themeManager.current.backgroundColor)
   }
 }
 
@@ -73,6 +74,7 @@ struct ClipboardSearchBar: View {
   let onTextChanged: (String) -> Void
 
   @EnvironmentObject var themeManager: ThemeManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   var body: some View {
     HStack(spacing: 12) {
@@ -82,7 +84,7 @@ struct ClipboardSearchBar: View {
 
       SearchTextField(
         text: $searchText,
-        placeholder: LocalizationManager.shared.t("clipboard.searchPlaceholder"),
+        placeholder: l10n.t("clipboard.searchPlaceholder"),
         onSubmit: onSubmit,
         onKeyDown: onKeyDown,
         theme: themeManager.current,
@@ -116,13 +118,14 @@ struct ClipboardListView: View {
   let onDoubleClick: (Int) -> Void
 
   @EnvironmentObject var themeManager: ThemeManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   var body: some View {
     ScrollViewReader { proxy in
       ScrollView(.vertical, showsIndicators: true) {
         VStack(spacing: 0) {
           if items.isEmpty {
-            Text(LocalizationManager.shared.t("clipboard.empty"))
+            Text(l10n.t("clipboard.empty"))
               .font(.system(size: 13))
               .foregroundColor(themeManager.current.subtitleColor)
               .frame(maxWidth: .infinity)
@@ -165,6 +168,7 @@ struct ClipboardRowView: View {
   let index: Int
 
   @EnvironmentObject var themeManager: ThemeManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   private var iconName: String {
     switch item.contentType {
@@ -178,14 +182,13 @@ struct ClipboardRowView: View {
 
   private var preview: String {
     if item.contentType == .image {
-      return LocalizationManager.shared.t("clipboard.imageItem")
+      return l10n.t("clipboard.imageItem")
     }
     return String(item.content.prefix(80)).replacingOccurrences(of: "\n", with: " ↵ ")
   }
 
   private var timeAgo: String {
     let interval = Date().timeIntervalSince(item.timestamp)
-    let l10n = LocalizationManager.shared
     if interval < 60 { return l10n.t("plugin.clipboard.justNow") }
     if interval < 3600 { return "\(Int(interval / 60))\(l10n.t("plugin.clipboard.minutesAgo"))" }
     if interval < 86400 { return "\(Int(interval / 3600))\(l10n.t("plugin.clipboard.hoursAgo"))" }
@@ -254,6 +257,7 @@ struct ClipboardPreviewView: View {
   let item: ClipboardItem?
 
   @EnvironmentObject var themeManager: ThemeManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -263,7 +267,7 @@ struct ClipboardPreviewView: View {
           Image(systemName: "eye")
             .font(.system(size: 12, weight: .medium))
             .foregroundColor(themeManager.current.accentColor)
-          Text(LocalizationManager.shared.t("clipboard.preview"))
+          Text(l10n.t("clipboard.preview"))
             .font(.system(size: 12, weight: .semibold))
             .foregroundColor(themeManager.current.textColor)
 
@@ -341,14 +345,14 @@ struct ClipboardPreviewView: View {
               .font(.system(size: 10))
               .foregroundColor(themeManager.current.subtitleColor)
           } else {
-            Text("\(item.content.count) \(LocalizationManager.shared.t("clipboard.characters"))")
+            Text("\(item.content.count) \(l10n.t("clipboard.characters"))")
               .font(.system(size: 10))
               .foregroundColor(themeManager.current.subtitleColor)
           }
 
           Spacer()
 
-          Text(LocalizationManager.shared.t("clipboard.enterToPaste"))
+          Text(l10n.t("clipboard.enterToPaste"))
             .font(.system(size: 10))
             .foregroundColor(themeManager.current.subtitleColor)
         }
@@ -361,7 +365,7 @@ struct ClipboardPreviewView: View {
           Image(systemName: "doc.on.clipboard")
             .font(.system(size: 28))
             .foregroundColor(themeManager.current.subtitleColor.opacity(0.5))
-          Text(LocalizationManager.shared.t("clipboard.selectToPreview"))
+          Text(l10n.t("clipboard.selectToPreview"))
             .font(.system(size: 12))
             .foregroundColor(themeManager.current.subtitleColor)
         }
@@ -372,11 +376,11 @@ struct ClipboardPreviewView: View {
 
   private func contentTypeLabel(_ type: ClipboardContentType) -> String {
     switch type {
-    case .text: return "Text"
-    case .url: return "URL"
-    case .filePath: return "Path"
-    case .image: return "Image"
-    case .color: return "Color"
+    case .text: return l10n.t("clipboard.typeText")
+    case .url: return l10n.t("clipboard.typeUrl")
+    case .filePath: return l10n.t("clipboard.typePath")
+    case .image: return l10n.t("clipboard.typeImage")
+    case .color: return l10n.t("clipboard.typeColor")
     }
   }
 }
@@ -391,22 +395,23 @@ struct ClipboardBottomBar: View {
   let onNextPage: () -> Void
 
   @EnvironmentObject var themeManager: ThemeManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   var body: some View {
     HStack(spacing: 12) {
       // Shortcuts hint
       HStack(spacing: 8) {
-        ShortcutHint(key: "↑↓", label: LocalizationManager.shared.t("clipboard.navigate"))
-        ShortcutHint(key: "⏎", label: LocalizationManager.shared.t("clipboard.paste"))
-        ShortcutHint(key: "⌘←→", label: LocalizationManager.shared.t("clipboard.page"))
-        ShortcutHint(key: "ESC", label: LocalizationManager.shared.t("clipboard.close"))
+        ShortcutHint(key: "↑↓", label: l10n.t("clipboard.navigate"))
+        ShortcutHint(key: "⏎", label: l10n.t("clipboard.paste"))
+        ShortcutHint(key: "⌘←→", label: l10n.t("clipboard.page"))
+        ShortcutHint(key: "ESC", label: l10n.t("clipboard.close"))
       }
 
       Spacer()
 
       // Page indicator
       HStack(spacing: 6) {
-        Text("\(totalItems) \(LocalizationManager.shared.t("clipboard.items"))")
+        Text("\(totalItems) \(l10n.t("clipboard.items"))")
           .font(.system(size: 10))
           .foregroundColor(themeManager.current.subtitleColor)
 

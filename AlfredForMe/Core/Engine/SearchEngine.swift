@@ -43,12 +43,16 @@ final class SearchEngine: ObservableObject {
       // This ensures fast plugins (Calculator, AppLauncher) show results immediately
       // without waiting for slow plugins (FileSearch with Spotlight timeout)
       var allResults: [SearchResult] = []
+      // Limit results per plugin to avoid cluttered output
+      let maxResultsPerPlugin = 5
 
       await withTaskGroup(of: [SearchResult].self) { group in
         for plugin in matchingPlugins {
           group.addTask {
             guard !Task.isCancelled else { return [] }
-            return await plugin.search(query: searchQuery)
+            let results = await plugin.search(query: searchQuery)
+            // Cap results per plugin
+            return Array(results.prefix(maxResultsPerPlugin))
           }
         }
 

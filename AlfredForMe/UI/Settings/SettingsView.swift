@@ -7,23 +7,32 @@ struct SettingsView: View {
   @EnvironmentObject var settingsManager: SettingsManager
   @EnvironmentObject var pluginManager: PluginManager
   @EnvironmentObject var themeManager: ThemeManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   @State private var selectedTab = SettingsTab.general
 
   enum SettingsTab: String, CaseIterable, Identifiable {
-    case general = "通用"
-    case appearance = "外观"
-    case search = "搜索"
-    case webSearch = "Web 搜索"
-    case plugins = "插件"
-    case clipboard = "剪贴板"
-    case snippets = "代码片段"
-    case workflows = "工作流"
-    case terminal = "终端"
-    case ai = "AI"
-    case advanced = "高级"
+    case general, appearance, search, webSearch, plugins
+    case clipboard, snippets, workflows, terminal, ai, advanced
 
     var id: String { rawValue }
+
+    var displayName: String {
+      let l10n = LocalizationManager.shared
+      switch self {
+      case .general: return l10n.t("settings.general")
+      case .appearance: return l10n.t("settings.appearance")
+      case .search: return l10n.t("settings.search")
+      case .webSearch: return l10n.t("settings.webSearch")
+      case .plugins: return l10n.t("settings.plugins")
+      case .clipboard: return l10n.t("settings.clipboard")
+      case .snippets: return l10n.t("settings.snippets")
+      case .workflows: return l10n.t("settings.workflows")
+      case .terminal: return l10n.t("settings.terminal")
+      case .ai: return l10n.t("settings.ai")
+      case .advanced: return l10n.t("settings.advanced")
+      }
+    }
 
     var icon: String {
       switch self {
@@ -41,20 +50,26 @@ struct SettingsView: View {
       }
     }
 
-    var section: String {
+    var sectionKey: String {
       switch self {
-      case .general, .appearance: return "基本"
-      case .search, .webSearch, .plugins: return "搜索"
-      case .clipboard, .snippets, .workflows: return "功能"
-      case .terminal, .ai, .advanced: return "其他"
+      case .general, .appearance: return "basic"
+      case .search, .webSearch, .plugins: return "search"
+      case .clipboard, .snippets, .workflows: return "features"
+      case .terminal, .ai, .advanced: return "other"
       }
     }
   }
 
   private var groupedTabs: [(String, [SettingsTab])] {
-    let sections = ["基本", "搜索", "功能", "其他"]
+    let l10n = LocalizationManager.shared
+    let sections: [(key: String, name: String)] = [
+      ("basic", l10n.t("settings.section.basic")),
+      ("search", l10n.t("settings.section.search")),
+      ("features", l10n.t("settings.section.features")),
+      ("other", l10n.t("settings.section.other")),
+    ]
     return sections.map { section in
-      (section, SettingsTab.allCases.filter { $0.section == section })
+      (section.name, SettingsTab.allCases.filter { $0.sectionKey == section.key })
     }
   }
 
@@ -81,7 +96,7 @@ struct SettingsView: View {
         ForEach(groupedTabs, id: \.0) { section, tabs in
           Section {
             ForEach(tabs) { tab in
-              Label(tab.rawValue, systemImage: tab.icon)
+              Label(tab.displayName, systemImage: tab.icon)
                 .tag(tab)
             }
           } header: {
@@ -98,7 +113,7 @@ struct SettingsView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 0) {
           // Header
-          Text(selectedTab.rawValue)
+          Text(selectedTab.displayName)
             .font(.system(size: 20, weight: .semibold))
             .padding(.horizontal, 28)
             .padding(.top, 24)
@@ -215,7 +230,7 @@ struct GeneralSettingsView: View {
         }
         SettingsRow {
           HStack {
-            Text("剪贴板快捷键")
+            Text(l10n.t("general.clipboardHotkey"))
             Spacer()
             HotkeyRecorderButton(
               hotkey: Binding(
@@ -230,7 +245,7 @@ struct GeneralSettingsView: View {
         }
         SettingsRow(showDivider: false) {
           HStack {
-            Text("AI 对话快捷键")
+            Text(l10n.t("general.aiChatHotkey"))
             Spacer()
             HotkeyRecorderButton(
               hotkey: Binding(
@@ -290,7 +305,7 @@ struct AppearanceSettingsView: View {
         }
       }
 
-      SettingsCard(title: "主题") {
+      SettingsCard(title: l10n.t("appearance.theme")) {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 12) {
           ForEach(themeManager.availableThemes) { theme in
             ThemePreviewCard(theme: theme, isSelected: theme.id == themeManager.current.id)
@@ -302,10 +317,10 @@ struct AppearanceSettingsView: View {
         .padding(14)
       }
 
-      SettingsCard(title: "字体与图标") {
+      SettingsCard(title: l10n.t("appearance.fontAndIcon")) {
         SettingsRow {
           HStack {
-            Text("搜索框字体大小")
+            Text(l10n.t("appearance.searchFontSize"))
             Spacer()
             Slider(value: $settingsManager.fontSize, in: 14...28, step: 1)
               .frame(width: 180)
@@ -317,7 +332,7 @@ struct AppearanceSettingsView: View {
         }
         SettingsRow(showDivider: false) {
           HStack {
-            Text("图标大小")
+            Text(l10n.t("appearance.iconSize"))
             Spacer()
             Slider(value: $settingsManager.resultIconSize, in: 24...48, step: 4)
               .frame(width: 180)
@@ -410,17 +425,18 @@ struct ThemePreviewCard: View {
 
 struct SearchSettingsView: View {
   @EnvironmentObject var settingsManager: SettingsManager
+  @ObservedObject var l10n = LocalizationManager.shared
   @State private var newScope = ""
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      SettingsCard(title: "搜索选项") {
+      SettingsCard(title: l10n.t("search.options")) {
         SettingsRow(showDivider: false) {
-          Toggle("模糊匹配", isOn: $settingsManager.fuzzyMatching)
+          Toggle(l10n.t("search.fuzzyMatching"), isOn: $settingsManager.fuzzyMatching)
         }
       }
 
-      SettingsCard(title: "搜索范围") {
+      SettingsCard(title: l10n.t("search.scope")) {
         VStack(spacing: 0) {
           ForEach(Array(settingsManager.searchScope.enumerated()), id: \.element) { index, path in
             SettingsRow(showDivider: index < settingsManager.searchScope.count - 1) {
@@ -445,7 +461,7 @@ struct SearchSettingsView: View {
           }
           if settingsManager.searchScope.isEmpty {
             SettingsRow(showDivider: false) {
-              Text("暂无搜索范围")
+              Text(l10n.t("search.noScope"))
                 .font(.system(size: 13))
                 .foregroundColor(.secondary)
             }
@@ -455,10 +471,10 @@ struct SearchSettingsView: View {
         Divider().padding(.horizontal, 14)
 
         HStack(spacing: 8) {
-          TextField("添加路径...", text: $newScope)
+          TextField(l10n.t("search.addPath"), text: $newScope)
             .textFieldStyle(.roundedBorder)
             .font(.system(size: 13))
-          Button("添加") {
+          Button(l10n.t("action.add")) {
             if !newScope.isEmpty {
               settingsManager.searchScope.append(newScope)
               newScope = ""
@@ -476,11 +492,12 @@ struct SearchSettingsView: View {
 
 struct WebSearchSettingsView: View {
   @EnvironmentObject var settingsManager: SettingsManager
+  @ObservedObject var l10n = LocalizationManager.shared
   @State private var showingAddSheet = false
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      SettingsCard(title: "搜索引擎") {
+      SettingsCard(title: l10n.t("webSearch.engine")) {
         VStack(spacing: 0) {
           ForEach(Array(settingsManager.webSearchEngines.enumerated()), id: \.element.id) {
             index, engine in
@@ -508,7 +525,7 @@ struct WebSearchSettingsView: View {
                 Spacer()
 
                 if engine.keyword == settingsManager.defaultWebSearch {
-                  Text("默认")
+                  Text(l10n.t("label.default"))
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.accentColor)
                     .padding(.horizontal, 8)
@@ -526,13 +543,13 @@ struct WebSearchSettingsView: View {
 
       HStack(spacing: 12) {
         Button(action: { showingAddSheet = true }) {
-          Label("添加搜索引擎", systemImage: "plus")
+          Label(l10n.t("webSearch.addEngine"), systemImage: "plus")
         }
 
         Spacer()
 
         HStack(spacing: 6) {
-          Text("默认:")
+          Text(l10n.t("webSearch.defaultEngine"))
             .font(.system(size: 13))
             .foregroundColor(.secondary)
           Picker("", selection: $settingsManager.defaultWebSearch) {
@@ -554,6 +571,7 @@ struct WebSearchSettingsView: View {
 struct AddWebSearchSheet: View {
   @Binding var isPresented: Bool
   @EnvironmentObject var settingsManager: SettingsManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   @State private var name = ""
   @State private var keyword = ""
@@ -561,23 +579,26 @@ struct AddWebSearchSheet: View {
 
   var body: some View {
     VStack(spacing: 20) {
-      Text("添加搜索引擎")
+      Text(l10n.t("webSearch.addEngine"))
         .font(.system(size: 16, weight: .semibold))
 
       VStack(alignment: .leading, spacing: 12) {
         VStack(alignment: .leading, spacing: 4) {
-          Text("名称").font(.system(size: 12, weight: .medium)).foregroundColor(.secondary)
+          Text(l10n.t("webSearch.nameLabel")).font(.system(size: 12, weight: .medium))
+            .foregroundColor(.secondary)
           TextField("Google", text: $name).textFieldStyle(.roundedBorder)
         }
         VStack(alignment: .leading, spacing: 4) {
-          Text("关键词").font(.system(size: 12, weight: .medium)).foregroundColor(.secondary)
+          Text(l10n.t("webSearch.keywordLabel")).font(.system(size: 12, weight: .medium))
+            .foregroundColor(.secondary)
           TextField("google", text: $keyword).textFieldStyle(.roundedBorder)
         }
         VStack(alignment: .leading, spacing: 4) {
-          Text("URL 模板").font(.system(size: 12, weight: .medium)).foregroundColor(.secondary)
+          Text(l10n.t("webSearch.urlTemplateLabel")).font(.system(size: 12, weight: .medium))
+            .foregroundColor(.secondary)
           TextField("https://google.com/search?q={query}", text: $urlTemplate).textFieldStyle(
             .roundedBorder)
-          Text("使用 {query} 作为搜索词占位符")
+          Text(l10n.t("webSearch.urlTemplateHint"))
             .font(.system(size: 11))
             .foregroundColor(.secondary)
         }
@@ -586,10 +607,10 @@ struct AddWebSearchSheet: View {
       Spacer()
 
       HStack {
-        Button("取消") { isPresented = false }
+        Button(l10n.t("action.cancel")) { isPresented = false }
           .keyboardShortcut(.cancelAction)
         Spacer()
-        Button("添加") {
+        Button(l10n.t("action.add")) {
           let engine = WebSearchEngine(name: name, keyword: keyword, urlTemplate: urlTemplate)
           settingsManager.webSearchEngines.append(engine)
           isPresented = false
@@ -607,10 +628,11 @@ struct AddWebSearchSheet: View {
 
 struct PluginSettingsView: View {
   @EnvironmentObject var pluginManager: PluginManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      SettingsCard(title: "已安装插件") {
+      SettingsCard(title: l10n.t("plugins.installed")) {
         VStack(spacing: 0) {
           ForEach(Array(pluginManager.plugins.enumerated()), id: \.element.id) { index, plugin in
             SettingsRow(showDivider: index < pluginManager.plugins.count - 1) {
@@ -650,7 +672,7 @@ struct PluginSettingsView: View {
 
                 Spacer()
 
-                Text("优先级 \(plugin.priority)")
+                Text("\(l10n.t("plugins.priorityLabel")) \(plugin.priority)")
                   .font(.system(size: 11))
                   .foregroundColor(.secondary)
               }
@@ -725,18 +747,19 @@ struct ClipboardSettingsView: View {
 
 struct SnippetSettingsView: View {
   @EnvironmentObject var settingsManager: SettingsManager
+  @ObservedObject var l10n = LocalizationManager.shared
   @State private var showingAddSheet = false
   @State private var editingSnippet: Snippet?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      SettingsCard(title: "代码片段") {
+      SettingsCard(title: l10n.t("settings.snippets")) {
         if settingsManager.snippets.isEmpty {
           VStack(spacing: 8) {
             Image(systemName: "text.snippet")
               .font(.system(size: 28))
               .foregroundColor(.secondary.opacity(0.5))
-            Text("暂无代码片段")
+            Text(l10n.t("snippet.empty"))
               .font(.system(size: 13))
               .foregroundColor(.secondary)
           }
@@ -779,7 +802,7 @@ struct SnippetSettingsView: View {
       }
 
       Button(action: { showingAddSheet = true }) {
-        Label("添加代码片段", systemImage: "plus")
+        Label(l10n.t("snippet.add"), systemImage: "plus")
       }
     }
     .sheet(isPresented: $showingAddSheet) {
@@ -791,6 +814,7 @@ struct SnippetSettingsView: View {
 struct AddSnippetSheet: View {
   @Binding var isPresented: Bool
   @EnvironmentObject var settingsManager: SettingsManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   @State private var name = ""
   @State private var keyword = ""
@@ -799,26 +823,29 @@ struct AddSnippetSheet: View {
 
   var body: some View {
     VStack(spacing: 20) {
-      Text("添加代码片段")
+      Text(l10n.t("snippet.add"))
         .font(.system(size: 16, weight: .semibold))
 
       VStack(alignment: .leading, spacing: 12) {
         VStack(alignment: .leading, spacing: 4) {
-          Text("名称").font(.system(size: 12, weight: .medium)).foregroundColor(.secondary)
-          TextField("片段名称", text: $name).textFieldStyle(.roundedBorder)
+          Text(l10n.t("snippet.nameLabel")).font(.system(size: 12, weight: .medium))
+            .foregroundColor(.secondary)
+          TextField(l10n.t("snippet.namePlaceholder"), text: $name).textFieldStyle(.roundedBorder)
         }
         HStack(spacing: 12) {
           VStack(alignment: .leading, spacing: 4) {
-            Text("关键词").font(.system(size: 12, weight: .medium)).foregroundColor(.secondary)
+            Text(l10n.t("snippet.keywordLabel")).font(.system(size: 12, weight: .medium))
+              .foregroundColor(.secondary)
             TextField("keyword", text: $keyword).textFieldStyle(.roundedBorder)
           }
           VStack(alignment: .leading, spacing: 4) {
             Text(" ").font(.system(size: 12))
-            Toggle("自动展开", isOn: $autoExpand)
+            Toggle(l10n.t("snippet.autoExpand"), isOn: $autoExpand)
           }
         }
         VStack(alignment: .leading, spacing: 4) {
-          Text("内容").font(.system(size: 12, weight: .medium)).foregroundColor(.secondary)
+          Text(l10n.t("snippet.contentLabel")).font(.system(size: 12, weight: .medium))
+            .foregroundColor(.secondary)
           TextEditor(text: $content)
             .font(.system(size: 12, design: .monospaced))
             .frame(height: 100)
@@ -832,10 +859,10 @@ struct AddSnippetSheet: View {
       Spacer()
 
       HStack {
-        Button("取消") { isPresented = false }
+        Button(l10n.t("action.cancel")) { isPresented = false }
           .keyboardShortcut(.cancelAction)
         Spacer()
-        Button("添加") {
+        Button(l10n.t("action.add")) {
           let snippet = Snippet(
             name: name, keyword: keyword, content: content, autoExpand: autoExpand)
           settingsManager.snippets.append(snippet)
@@ -854,19 +881,20 @@ struct AddSnippetSheet: View {
 
 struct WorkflowSettingsView: View {
   @StateObject private var engine = WorkflowEngine.shared
+  @ObservedObject var l10n = LocalizationManager.shared
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      SettingsCard(title: "工作流") {
+      SettingsCard(title: l10n.t("settings.workflows")) {
         if engine.workflows.isEmpty {
           VStack(spacing: 8) {
             Image(systemName: "bolt.slash")
               .font(.system(size: 28))
               .foregroundColor(.secondary.opacity(0.5))
-            Text("暂无工作流")
+            Text(l10n.t("workflow.empty"))
               .font(.system(size: 13))
               .foregroundColor(.secondary)
-            Text("工作流可以将多个操作串联自动化执行")
+            Text(l10n.t("workflow.emptyDesc"))
               .font(.system(size: 11))
               .foregroundColor(.secondary.opacity(0.7))
           }
@@ -886,7 +914,7 @@ struct WorkflowSettingsView: View {
                         .foregroundColor(.accentColor)
                       Text("·")
                         .foregroundColor(.secondary)
-                      Text("\(workflow.steps.count) 步")
+                      Text("\(workflow.steps.count) \(l10n.t("workflow.steps"))")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                     }
@@ -905,10 +933,10 @@ struct WorkflowSettingsView: View {
 
       HStack(spacing: 12) {
         Button(action: {}) {
-          Label("导入工作流", systemImage: "square.and.arrow.down")
+          Label(l10n.t("workflow.import"), systemImage: "square.and.arrow.down")
         }
         Button(action: {}) {
-          Label("新建工作流", systemImage: "plus")
+          Label(l10n.t("workflow.create"), systemImage: "plus")
         }
       }
     }
@@ -919,15 +947,16 @@ struct WorkflowSettingsView: View {
 
 struct TerminalSettingsView: View {
   @EnvironmentObject var settingsManager: SettingsManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   let terminalOptions = ["Terminal", "iTerm2", "Alacritty", "Warp", "Kitty"]
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      SettingsCard(title: "终端应用") {
+      SettingsCard(title: l10n.t("terminal.app")) {
         SettingsRow(showDivider: false) {
           HStack {
-            Text("终端")
+            Text(l10n.t("terminal.terminal"))
             Spacer()
             Picker("", selection: $settingsManager.terminalApp) {
               ForEach(terminalOptions, id: \.self) { option in
@@ -940,11 +969,11 @@ struct TerminalSettingsView: View {
         }
       }
 
-      SettingsCard(title: "Shell") {
+      SettingsCard(title: l10n.t("terminal.shell")) {
         SettingsRow {
           VStack(alignment: .leading, spacing: 6) {
             HStack {
-              Text("Shell 路径")
+              Text(l10n.t("terminal.shellPath"))
               Spacer()
               TextField("/bin/zsh", text: $settingsManager.shellPath)
                 .textFieldStyle(.roundedBorder)
@@ -953,7 +982,7 @@ struct TerminalSettingsView: View {
           }
         }
         SettingsRow(showDivider: false) {
-          Text("常用: /bin/zsh, /bin/bash, /usr/local/bin/fish")
+          Text(l10n.t("terminal.commonShells"))
             .font(.system(size: 11))
             .foregroundColor(.secondary)
         }
@@ -966,13 +995,14 @@ struct TerminalSettingsView: View {
 
 struct AdvancedSettingsView: View {
   @EnvironmentObject var settingsManager: SettingsManager
+  @ObservedObject var l10n = LocalizationManager.shared
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      SettingsCard(title: "版本信息") {
+      SettingsCard(title: l10n.t("advanced.versionInfo")) {
         SettingsRow(showDivider: false) {
           HStack {
-            Text("版本")
+            Text(l10n.t("advanced.versionLabel"))
             Spacer()
             Text("1.0.0")
               .foregroundColor(.secondary)
@@ -980,40 +1010,40 @@ struct AdvancedSettingsView: View {
         }
       }
 
-      SettingsCard(title: "数据管理") {
+      SettingsCard(title: l10n.t("advanced.dataManagement")) {
         SettingsRow {
           HStack {
-            Text("导出设置")
+            Text(l10n.t("advanced.exportSettings"))
             Spacer()
-            Button("导出...") {}
+            Button(l10n.t("advanced.exportBtn")) {}
           }
         }
         SettingsRow {
           HStack {
-            Text("导入设置")
+            Text(l10n.t("advanced.importSettings"))
             Spacer()
-            Button("导入...") {}
+            Button(l10n.t("advanced.importBtn")) {}
           }
         }
         SettingsRow(showDivider: false) {
           HStack {
             VStack(alignment: .leading, spacing: 2) {
-              Text("重置所有设置")
+              Text(l10n.t("advanced.resetAll"))
                 .foregroundColor(.red)
-              Text("恢复所有设置为默认值，此操作不可撤销")
+              Text(l10n.t("advanced.resetWarning"))
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
             }
             Spacer()
-            Button("重置") {}
+            Button(l10n.t("advanced.resetBtn")) {}
               .foregroundColor(.red)
           }
         }
       }
 
-      SettingsCard(title: "关于") {
+      SettingsCard(title: l10n.t("advanced.about")) {
         SettingsRow(showDivider: false) {
-          Text("AlfredForMe — 个人定制化启动器")
+          Text(l10n.t("advanced.aboutDesc"))
             .font(.system(size: 12))
             .foregroundColor(.secondary)
         }
@@ -1026,6 +1056,7 @@ struct AdvancedSettingsView: View {
 
 struct HotkeyRecorderButton: View {
   @Binding var hotkey: HotkeyConfig
+  @ObservedObject var l10n = LocalizationManager.shared
   @State private var isRecording = false
   @State private var monitor: Any?
 
@@ -1037,7 +1068,7 @@ struct HotkeyRecorderButton: View {
         startRecording()
       }
     }) {
-      Text(isRecording ? "按下快捷键..." : hotkey.displayName)
+      Text(isRecording ? l10n.t("general.pressHotkey") : hotkey.displayName)
         .font(.system(size: 13, weight: .medium, design: .rounded))
         .foregroundColor(isRecording ? .accentColor : .primary)
         .padding(.horizontal, 14)

@@ -19,8 +19,13 @@ final class FileSearchPlugin: SearchPlugin {
     if query.isKeywordTrigger, let kw = query.keyword {
       return fileKeywords.contains(kw.lowercased())
     }
-    // Also handle general queries (with lower relevance)
-    return !query.raw.isEmpty && !query.isKeywordTrigger && query.raw.count >= 2
+    // Only handle generic queries if they look like a file path
+    // For general text queries, require keyword trigger (open/find/file)
+    if !query.isKeywordTrigger {
+      let raw = query.raw
+      return raw.hasPrefix("/") || raw.hasPrefix("~") || raw.hasPrefix(".")
+    }
+    return false
   }
 
   func search(query: SearchQuery) async -> [SearchResult] {
@@ -48,27 +53,27 @@ final class FileSearchPlugin: SearchPlugin {
     let url = URL(fileURLWithPath: path)
 
     return [
-      ResultAction(title: "打开", shortcut: "⏎") {
+      ResultAction(title: LocalizationManager.shared.t("action.open"), shortcut: "⏎") {
         NSWorkspace.shared.open(url)
       },
-      ResultAction(title: "在 Finder 中显示", shortcut: "⌘⏎") {
+      ResultAction(title: LocalizationManager.shared.t("action.openInFinder"), shortcut: "⌘⏎") {
         NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: "")
       },
-      ResultAction(title: "复制路径") {
+      ResultAction(title: LocalizationManager.shared.t("action.copyPath")) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(path, forType: .string)
       },
-      ResultAction(title: "复制文件名") {
+      ResultAction(title: LocalizationManager.shared.t("action.copyFileName")) {
         let name = url.lastPathComponent
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(name, forType: .string)
       },
-      ResultAction(title: "在终端中打开") {
+      ResultAction(title: LocalizationManager.shared.t("action.openInTerminal")) {
         let dir = url.hasDirectoryPath ? path : url.deletingLastPathComponent().path
         let script = "tell application \"Terminal\" to do script \"cd \(dir.shellEscaped)\""
         NSAppleScript(source: script)?.executeAndReturnError(nil)
       },
-      ResultAction(title: "移到废纸篓") {
+      ResultAction(title: LocalizationManager.shared.t("action.moveToTrash")) {
         do {
           try FileManager.default.trashItem(at: url, resultingItemURL: nil)
         } catch {
@@ -85,15 +90,12 @@ final class FileSearchPlugin: SearchPlugin {
     let queryString = buildMDQueryString(query: query)
 
     return await withCheckedContinuation { continuation in
-      DispatchQueue.main.async { [weak self] in
-        guard let self = self else {
-          continuation.resume(returning: [])
-          return
-        }
-
+      // Use nonisolated(unsafe) to avoid Sendable warnings for MainActor-bound usage
+      nonisolated(unsafe) let unsafeSelf = self
+      DispatchQueue.main.async {
         // Stop previous query
-        self.metadataQuery?.stop()
-        self.metadataQuery = nil
+        unsafeSelf.metadataQuery?.stop()
+        unsafeSelf.metadataQuery = nil
 
         let mdQuery = NSMetadataQuery()
         mdQuery.predicate = NSPredicate(fromMetadataQueryString: queryString)
@@ -110,37 +112,40 @@ final class FileSearchPlugin: SearchPlugin {
         // which would cause the observer and timeout to both try to resume.
         var resumed = false
 
-        var observer: NSObjectProtocol?
-        observer = NotificationCenter.default.addObserver(
+        // Use a class wrapper to avoid 'var observer mutated after capture' warning
+        class ObserverBox { var value: NSObjectProtocol? }
+        let observerBox = ObserverBox()
+
+        observerBox.value = NotificationCenter.default.addObserver(
           forName: .NSMetadataQueryDidFinishGathering,
           object: mdQuery,
           queue: .main
-        ) { [weak self] notification in
+        ) { notification in
           guard !resumed else { return }
           resumed = true
 
-          if let obs = observer {
+          if let obs = observerBox.value {
             NotificationCenter.default.removeObserver(obs)
           }
 
           mdQuery.stop()
 
           let results =
-            self?.processMetadataResults(
+            unsafeSelf.processMetadataResults(
               query: mdQuery,
               searchText: query
-            ) ?? []
+            )
 
-          self?.previousTerm = query
+          unsafeSelf.previousTerm = query
           continuation.resume(returning: results)
         }
 
-        self.metadataQuery = mdQuery
+        unsafeSelf.metadataQuery = mdQuery
 
         if !mdQuery.start() {
           guard !resumed else { return }
           resumed = true
-          if let obs = observer {
+          if let obs = observerBox.value {
             NotificationCenter.default.removeObserver(obs)
           }
           continuation.resume(returning: [])
@@ -148,20 +153,20 @@ final class FileSearchPlugin: SearchPlugin {
         }
 
         // Timeout: if query takes too long, return what we have
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
           guard !resumed else { return }
           resumed = true
 
-          if let obs = observer {
+          if let obs = observerBox.value {
             NotificationCenter.default.removeObserver(obs)
           }
           mdQuery.stop()
 
           let results =
-            self?.processMetadataResults(
+            unsafeSelf.processMetadataResults(
               query: mdQuery,
               searchText: query
-            ) ?? []
+            )
           continuation.resume(returning: results)
         }
       }

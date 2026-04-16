@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -374,6 +375,7 @@ struct AIChatView: View {
 
 struct MessageBubbleView: View {
   let message: ChatMessage
+  @ObservedObject var l10n = LocalizationManager.shared
 
   var body: some View {
     HStack(alignment: .top, spacing: 8) {
@@ -435,7 +437,7 @@ struct MessageBubbleView: View {
       }
     }
     .contextMenu {
-      Button(LocalizationManager.shared.t("action.copy")) {
+      Button(l10n.t("action.copy")) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(message.content, forType: .string)
       }
@@ -546,6 +548,7 @@ struct ChatInputTextField: NSViewRepresentable {
 final class AIChatWindowController: NSObject {
   static let shared = AIChatWindowController()
   private var window: NSWindow?
+  private var languageCancellable: AnyCancellable?
 
   func showChatWindow() {
     if let window = window {
@@ -572,5 +575,12 @@ final class AIChatWindowController: NSObject {
     NSApp.activate(ignoringOtherApps: true)
 
     self.window = win
+
+    languageCancellable = LocalizationManager.shared.$language
+      .dropFirst()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] _ in
+        self?.window?.title = LocalizationManager.shared.t("ai.chat")
+      }
   }
 }

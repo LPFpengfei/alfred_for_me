@@ -43,18 +43,40 @@
 ### 系统功能
 
 - ✅ **插件化架构** - 所有功能通过 `SearchPlugin` 协议接入，易于扩展
-- ✅ **主题系统** - 10 个内置主题 (Alfred Classic, Dark, Nord, Dracula 等)
+- ✅ **主题系统** - 10 个内置主题 (Alfred Classic, Dark, macOS Light/Dark, Monokai, Solarized Dark/Light, Nord, Dracula, One Dark)，切换主题实时生效于搜索面板和剪贴板面板，NSVisualEffectView 根据主题明暗自动适配
+- ✅ **外观模式** - 支持浅色 / 深色 / 跟随系统三种外观模式，独立于主题选择
+- ✅ **自定义字体大小** - 搜索面板字体大小和结果图标大小可在设置中调节
 - ✅ **结果排序** - 基于使用频率和匹配度的智能排序
 - ✅ **模糊匹配** - 支持模糊搜索、缩写匹配、子序列匹配
 - ✅ **设置界面** - 完整的偏好设置面板 (10 个分类)
 - ✅ **菜单栏图标** - 常驻状态栏，快速访问
 - ✅ **操作面板** - Tab 键展开详细操作列表
+- ✅ **国际化 (i18n)** - 中文 / English 双语支持，所有 UI 文本（设置面板、搜索结果、操作按钮、AI 对话、错误提示等）均通过 LocalizationManager 管理
+
+## 搜索优化
+
+搜索引擎经过精心优化，避免查询结果混乱：
+
+- **精准匹配** - 系统命令仅在查询匹配已知命令别名时才显示（前缀匹配 / 包含匹配）
+- **文件搜索限定** - Spotlight 文件搜索仅在使用关键词 `open`/`find`/`file` 或路径语法 (`/`、`~`、`.`) 时触发，不再对普通文字查询干扰
+- **计算器误判修复** - 计算器仅对以数字/括号开头或 `=` 前缀的表达式生效，`C++`、`+1` 等不再误触发
+- **URL 识别收紧** - Web 搜索仅识别常见 web 域名后缀 (`.com`、`.org`、`.cn` 等)，`test.zip` 等文件名不再被当作 URL
+- **结果数量限制** - 每个插件最多返回 5 条结果，避免单个插件刷屏
+- **弱匹配过滤** - 应用启动器过滤低相关度的模糊匹配结果
+
+## 代码质量
+
+- ✅ 零编译警告 - 修复 Swift 6 并发安全 (Sendable)、未使用返回值、废弃 API 等问题
+- ✅ `UserNotifications` 替代废弃的 `NSUserNotification`
+- ✅ 自签名证书签名，支持 keychain 自动解锁，签名失败自动回退 ad-hoc
 
 ## 搜索语法
 
 | 语法 | 功能 | 示例 |
 |------|------|------|
 | `<text>` | 搜索应用/文件 | `safari` |
+| `open <query>` | 文件搜索 (Spotlight) | `open readme` |
+| `find <query>` | 文件搜索 (Spotlight) | `find config.json` |
 | `google <query>` | Web 搜索 | `google swift tutorial` |
 | `= <expression>` | 计算器 | `= 2 + 3 * 4` |
 | `> <command>` | 终端命令 | `> ls -la` |
@@ -193,4 +215,3 @@ AlfredForMe/
 ## License
 
 MIT
-

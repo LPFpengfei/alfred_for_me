@@ -27,11 +27,11 @@ final class AIChatEngine: ObservableObject {
   // MARK: - Active Provider/Model Info
 
   var activeProviderName: String {
-    config.activeProvider?.name ?? "未配置"
+    config.activeProvider?.name ?? LocalizationManager.shared.t("ai.notConfigured")
   }
 
   var activeModelName: String {
-    config.activeModel?.name ?? "未选择"
+    config.activeModel?.name ?? LocalizationManager.shared.t("ai.notSelected")
   }
 
   var allAvailableModels: [(provider: AIProviderConfig, model: AIModelEntry)] {
@@ -51,7 +51,8 @@ final class AIChatEngine: ObservableObject {
   func send(message: String, attachments: [ChatAttachment] = []) async {
     guard !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
     guard let providerConfig = config.activeProvider else {
-      let errorMsg = ChatMessage(role: .assistant, content: "⚠️ 请先在设置中配置 AI 服务商")
+      let errorMsg = ChatMessage(
+        role: .assistant, content: LocalizationManager.shared.t("ai.configureFirst"))
       await MainActor.run { currentSession.addMessage(errorMsg) }
       return
     }
@@ -75,7 +76,8 @@ final class AIChatEngine: ObservableObject {
         for try await chunk in stream {
           guard !Task.isCancelled else { throw AIError.cancelled }
           fullContent += chunk.content
-          await MainActor.run { self.streamingContent = fullContent }
+          let snapshot = fullContent
+          await MainActor.run { self.streamingContent = snapshot }
         }
 
         let assistantMessage = ChatMessage(role: .assistant, content: fullContent)
@@ -96,7 +98,8 @@ final class AIChatEngine: ObservableObject {
       }
     } catch {
       let errorMessage = ChatMessage(
-        role: .assistant, content: "⚠️ 错误: \(error.localizedDescription)")
+        role: .assistant,
+        content: "\(LocalizationManager.shared.t("ai.errorPrefix")) \(error.localizedDescription)")
       await MainActor.run {
         currentSession.addMessage(errorMessage)
         isGenerating = false

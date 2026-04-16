@@ -12,19 +12,23 @@ final class DictionaryPlugin: SearchPlugin {
 
     func canHandle(query: SearchQuery) -> Bool {
         if query.isKeywordTrigger, let kw = query.keyword {
-            return kw.lowercased() == "define" || kw.lowercased() == "dict" || kw.lowercased() == "d"
+            return kw.lowercased() == "define" || kw.lowercased() == "dict"
+                || kw.lowercased() == "d"
         }
         return false
     }
 
     func search(query: SearchQuery) async -> [SearchResult] {
+        let l10n = LocalizationManager.shared
         guard let word = query.argument?.trimmingCharacters(in: .whitespaces), !word.isEmpty else {
             return [
                 SearchResult(
                     id: "dict:placeholder",
-                    title: "输入要查询的单词...",
-                    subtitle: "define <单词>",
-                    icon: NSImage(systemSymbolName: "character.book.closed.fill", accessibilityDescription: nil),
+                    title: l10n.t("plugin.dict.inputWord"),
+                    subtitle: l10n.t("plugin.dict.defineHint"),
+                    icon: NSImage(
+                        systemSymbolName: "character.book.closed.fill",
+                        accessibilityDescription: nil),
                     category: .dictionary,
                     relevanceScore: 0.5,
                     plugin: id,
@@ -39,35 +43,39 @@ final class DictionaryPlugin: SearchPlugin {
         if let definition = lookupDefinition(word: word) {
             let preview = String(definition.prefix(200))
 
-            results.append(SearchResult(
-                id: "dict:\(word)",
-                title: word,
-                subtitle: preview,
-                icon: NSImage(systemSymbolName: "character.book.closed.fill", accessibilityDescription: nil),
-                category: .dictionary,
-                relevanceScore: 0.9,
-                plugin: id,
-                userData: [
-                    "word": word,
-                    "definition": definition
-                ]
-            ))
+            results.append(
+                SearchResult(
+                    id: "dict:\(word)",
+                    title: word,
+                    subtitle: preview,
+                    icon: NSImage(
+                        systemSymbolName: "character.book.closed.fill",
+                        accessibilityDescription: nil),
+                    category: .dictionary,
+                    relevanceScore: 0.9,
+                    plugin: id,
+                    userData: [
+                        "word": word,
+                        "definition": definition,
+                    ]
+                ))
         }
 
         // Always offer to open in Dictionary app
-        results.append(SearchResult(
-            id: "dict:open:\(word)",
-            title: "在词典中查看 \"\(word)\"",
-            subtitle: "打开 macOS 词典应用",
-            icon: NSImage(systemSymbolName: "book.fill", accessibilityDescription: nil),
-            category: .dictionary,
-            relevanceScore: 0.7,
-            plugin: id,
-            userData: [
-                "word": word,
-                "action": "openDict"
-            ]
-        ))
+        results.append(
+            SearchResult(
+                id: "dict:open:\(word)",
+                title: "\(l10n.t("plugin.dict.viewIn")) \"\(word)\"",
+                subtitle: l10n.t("plugin.dict.openApp"),
+                icon: NSImage(systemSymbolName: "book.fill", accessibilityDescription: nil),
+                category: .dictionary,
+                relevanceScore: 0.7,
+                plugin: id,
+                userData: [
+                    "word": word,
+                    "action": "openDict",
+                ]
+            ))
 
         return results
     }
@@ -77,7 +85,10 @@ final class DictionaryPlugin: SearchPlugin {
 
         if result.userData["action"] == "openDict" {
             // Open in Dictionary app
-            let url = URL(string: "dict://\(word.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? word)")!
+            let url = URL(
+                string:
+                    "dict://\(word.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? word)"
+            )!
             NSWorkspace.shared.open(url)
         } else if let definition = result.userData["definition"] {
             // Copy definition
@@ -88,19 +99,23 @@ final class DictionaryPlugin: SearchPlugin {
 
     func actions(for result: SearchResult) -> [ResultAction] {
         guard let word = result.userData["word"] else { return [] }
+        let l10n = LocalizationManager.shared
 
         return [
-            ResultAction(title: "在词典中打开", shortcut: "⏎") {
-                let url = URL(string: "dict://\(word.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? word)")!
+            ResultAction(title: l10n.t("action.openInDict"), shortcut: "⏎") {
+                let url = URL(
+                    string:
+                        "dict://\(word.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? word)"
+                )!
                 NSWorkspace.shared.open(url)
             },
-            ResultAction(title: "复制定义") {
+            ResultAction(title: l10n.t("action.copyDefinition")) {
                 if let definition = result.userData["definition"] {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(definition, forType: .string)
                 }
             },
-            ResultAction(title: "复制单词") {
+            ResultAction(title: l10n.t("action.copyWord")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(word, forType: .string)
             },

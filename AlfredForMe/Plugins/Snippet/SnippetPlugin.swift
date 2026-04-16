@@ -29,9 +29,9 @@ final class SnippetPlugin: SearchPlugin {
             filtered = snippets
         } else {
             filtered = snippets.filter {
-                $0.name.lowercased().contains(searchTerm) ||
-                $0.keyword.lowercased().contains(searchTerm) ||
-                $0.content.lowercased().contains(searchTerm)
+                $0.name.lowercased().contains(searchTerm)
+                    || $0.keyword.lowercased().contains(searchTerm)
+                    || $0.content.lowercased().contains(searchTerm)
             }
         }
 
@@ -49,7 +49,7 @@ final class SnippetPlugin: SearchPlugin {
                 userData: [
                     "snippetId": snippet.id,
                     "content": snippet.content,
-                    "keyword": snippet.keyword
+                    "keyword": snippet.keyword,
                 ]
             )
         }
@@ -60,9 +60,10 @@ final class SnippetPlugin: SearchPlugin {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(content, forType: .string)
 
-            // Auto-paste
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.simulatePaste()
+            // Auto-paste after a short delay
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                SnippetPlugin.simulatePaste()
             }
         }
     }
@@ -71,21 +72,22 @@ final class SnippetPlugin: SearchPlugin {
         guard let content = result.userData["content"] else { return [] }
 
         return [
-            ResultAction(title: "粘贴", shortcut: "⏎") { [weak self] in
+            ResultAction(title: LocalizationManager.shared.t("action.pasteClip"), shortcut: "⏎") {
+                [weak self] in
                 Task { await self?.execute(result: result) }
             },
-            ResultAction(title: "复制到剪贴板") {
+            ResultAction(title: LocalizationManager.shared.t("action.copyToClipboard")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(content, forType: .string)
             },
-            ResultAction(title: "编辑片段") {
+            ResultAction(title: LocalizationManager.shared.t("action.editSnippet")) {
                 // Open settings to snippet editor
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
             },
         ]
     }
 
-    private func simulatePaste() {
+    private static func simulatePaste() {
         let source = CGEventSource(stateID: .hidSystemState)
         let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)

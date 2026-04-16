@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import UserNotifications
 
 // MARK: - Workflow Engine
 
@@ -12,24 +13,30 @@ final class WorkflowEngine: ObservableObject {
     private let workflowsDirectory: URL
 
     private init() {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let appSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first!
         workflowsDirectory = appSupport.appendingPathComponent("AlfredForMe/Workflows")
 
         // Create directory if needed
-        try? FileManager.default.createDirectory(at: workflowsDirectory, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(
+            at: workflowsDirectory, withIntermediateDirectories: true)
     }
 
     func loadWorkflows() {
         // Load from disk
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: workflowsDirectory,
-            includingPropertiesForKeys: nil
-        ) else { return }
+        guard
+            let contents = try? FileManager.default.contentsOfDirectory(
+                at: workflowsDirectory,
+                includingPropertiesForKeys: nil
+            )
+        else { return }
 
         workflows = contents.compactMap { url -> Workflow? in
             let configURL = url.appendingPathComponent("workflow.json")
             guard let data = try? Data(contentsOf: configURL),
-                  var workflow = try? JSONDecoder().decode(Workflow.self, from: data) else {
+                var workflow = try? JSONDecoder().decode(Workflow.self, from: data)
+            else {
                 return nil
             }
             workflow.bundlePath = url.path
@@ -78,7 +85,7 @@ final class WorkflowEngine: ObservableObject {
                 let url = urlTemplate.replacingOccurrences(of: "{input}", with: input)
                 if let finalURL = URL(string: url) {
                     await MainActor.run {
-                        NSWorkspace.shared.open(finalURL)
+                        _ = NSWorkspace.shared.open(finalURL)
                     }
                 }
             }
@@ -87,13 +94,14 @@ final class WorkflowEngine: ObservableObject {
         case .openFile:
             if let path = step.config["path"]?.replacingOccurrences(of: "{input}", with: input) {
                 await MainActor.run {
-                    NSWorkspace.shared.open(URL(fileURLWithPath: path))
+                    _ = NSWorkspace.shared.open(URL(fileURLWithPath: path))
                 }
             }
             return input
 
         case .copyToClipboard:
-            let content = step.config["content"]?.replacingOccurrences(of: "{input}", with: input) ?? input
+            let content =
+                step.config["content"]?.replacingOccurrences(of: "{input}", with: input) ?? input
             await MainActor.run {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(content, forType: .string)
@@ -102,7 +110,8 @@ final class WorkflowEngine: ObservableObject {
 
         case .notification:
             let title = step.config["title"] ?? "AlfredForMe"
-            let message = step.config["message"]?.replacingOccurrences(of: "{input}", with: input) ?? input
+            let message =
+                step.config["message"]?.replacingOccurrences(of: "{input}", with: input) ?? input
             sendNotification(title: title, message: message)
             return input
 
@@ -144,7 +153,7 @@ final class WorkflowEngine: ObservableObject {
                     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
                     process.arguments = ["python3", "-c", script]
 
-                default: // bash, zsh, sh
+                default:  // bash, zsh, sh
                     process.executableURL = URL(fileURLWithPath: shellPath)
                     process.arguments = ["-c", script]
                 }
@@ -194,10 +203,12 @@ final class WorkflowEngine: ObservableObject {
     }
 
     private func sendNotification(title: String, message: String) {
-        let notification = NSUserNotification()
-        notification.title = title
-        notification.informativeText = message
-        NSUserNotificationCenter.default.deliver(notification)
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = message
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
     }
 }
 
@@ -234,14 +245,16 @@ final class WorkflowPlugin: SearchPlugin {
             SearchResult(
                 id: "workflow:\(workflow.id):\(input)",
                 title: workflow.name,
-                subtitle: input.isEmpty ? workflow.description : "运行: \(input)",
+                subtitle: input.isEmpty
+                    ? workflow.description
+                    : "\(LocalizationManager.shared.t("plugin.workflow.run")) \(input)",
                 icon: NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil),
                 category: .workflow,
                 relevanceScore: 0.85,
                 plugin: id,
                 userData: [
                     "workflowId": workflow.id,
-                    "input": input
+                    "input": input,
                 ]
             )
         ]

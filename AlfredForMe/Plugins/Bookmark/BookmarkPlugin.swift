@@ -44,8 +44,8 @@ final class BookmarkPlugin: SearchPlugin {
             filtered = Array(bookmarks.prefix(20))
         } else {
             filtered = bookmarks.filter {
-                $0.title.lowercased().contains(searchTerm) ||
-                $0.url.lowercased().contains(searchTerm)
+                $0.title.lowercased().contains(searchTerm)
+                    || $0.url.lowercased().contains(searchTerm)
             }
         }
 
@@ -60,7 +60,7 @@ final class BookmarkPlugin: SearchPlugin {
                 plugin: id,
                 userData: [
                     "url": bookmark.url,
-                    "title": bookmark.title
+                    "title": bookmark.title,
                 ]
             )
         }
@@ -68,7 +68,8 @@ final class BookmarkPlugin: SearchPlugin {
 
     func execute(result: SearchResult) async {
         if let urlString = result.userData["url"],
-           let url = URL(string: urlString) {
+            let url = URL(string: urlString)
+        {
             NSWorkspace.shared.open(url)
         }
     }
@@ -76,17 +77,19 @@ final class BookmarkPlugin: SearchPlugin {
     func actions(for result: SearchResult) -> [ResultAction] {
         guard let urlString = result.userData["url"] else { return [] }
 
+        let l10n = LocalizationManager.shared
+
         return [
-            ResultAction(title: "在浏览器中打开", shortcut: "⏎") {
+            ResultAction(title: l10n.t("action.openInBrowser"), shortcut: "⏎") {
                 if let url = URL(string: urlString) {
                     NSWorkspace.shared.open(url)
                 }
             },
-            ResultAction(title: "复制链接") {
+            ResultAction(title: l10n.t("action.copyLink")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(urlString, forType: .string)
             },
-            ResultAction(title: "复制标题") {
+            ResultAction(title: l10n.t("action.copyTitle")) {
                 if let title = result.userData["title"] {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(title, forType: .string)
@@ -128,9 +131,10 @@ final class BookmarkPlugin: SearchPlugin {
 
         for path in paths {
             guard FileManager.default.fileExists(atPath: path),
-                  let data = FileManager.default.contents(atPath: path),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let roots = json["roots"] as? [String: Any] else { continue }
+                let data = FileManager.default.contents(atPath: path),
+                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                let roots = json["roots"] as? [String: Any]
+            else { continue }
 
             for (_, value) in roots {
                 if let folder = value as? [String: Any] {
@@ -161,8 +165,10 @@ final class BookmarkPlugin: SearchPlugin {
     private func loadSafariBookmarks() -> [BookmarkItem] {
         let path = NSHomeDirectory() + "/Library/Safari/Bookmarks.plist"
         guard FileManager.default.fileExists(atPath: path),
-              let data = FileManager.default.contents(atPath: path),
-              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else {
+            let data = FileManager.default.contents(atPath: path),
+            let plist = try? PropertyListSerialization.propertyList(from: data, format: nil)
+                as? [String: Any]
+        else {
             return []
         }
 
@@ -173,7 +179,9 @@ final class BookmarkPlugin: SearchPlugin {
         var results: [BookmarkItem] = []
 
         if let urlString = dict["URLString"] as? String,
-           let title = (dict["URIDictionary"] as? [String: Any])?["title"] as? String ?? dict["Title"] as? String {
+            let title = (dict["URIDictionary"] as? [String: Any])?["title"] as? String ?? dict[
+                "Title"] as? String
+        {
             results.append(BookmarkItem(title: title, url: urlString, browser: "Safari"))
         }
 
@@ -193,7 +201,8 @@ final class BookmarkPlugin: SearchPlugin {
         guard FileManager.default.fileExists(atPath: profilesPath) else { return [] }
 
         // Find the default profile
-        guard let profiles = try? FileManager.default.contentsOfDirectory(atPath: profilesPath) else { return [] }
+        guard let profiles = try? FileManager.default.contentsOfDirectory(atPath: profilesPath)
+        else { return [] }
 
         for profile in profiles {
             let dbPath = "\(profilesPath)/\(profile)/places.sqlite"
@@ -211,7 +220,7 @@ final class BookmarkPlugin: SearchPlugin {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
         process.arguments = [
             dbPath,
-            "SELECT b.title, p.url FROM moz_bookmarks b JOIN moz_places p ON b.fk = p.id WHERE b.type = 1 AND b.title IS NOT NULL LIMIT 500;"
+            "SELECT b.title, p.url FROM moz_bookmarks b JOIN moz_places p ON b.fk = p.id WHERE b.type = 1 AND b.title IS NOT NULL LIMIT 500;",
         ]
 
         let pipe = Pipe()

@@ -59,7 +59,8 @@ final class AppLauncherPlugin: SearchPlugin {
         file: file,
         knowledgeWeight: knowledgeWeights[file.path] ?? 0
       )
-      guard score > 0 else { return nil }
+      // Require a minimum relevance to avoid cluttering results with weak matches
+      guard score >= 0.5 else { return nil }
 
       let icon = getCachedIcon(for: file.path)
 
@@ -78,7 +79,7 @@ final class AppLauncherPlugin: SearchPlugin {
 
   func execute(result: SearchResult) async {
     if let path = result.userData["path"] {
-      try? await NSWorkspace.shared.openApplication(
+      _ = try? await NSWorkspace.shared.openApplication(
         at: URL(fileURLWithPath: path),
         configuration: NSWorkspace.OpenConfiguration()
       )
@@ -89,17 +90,18 @@ final class AppLauncherPlugin: SearchPlugin {
     guard let path = result.userData["path"] else { return [] }
 
     return [
-      ResultAction(title: "打开", shortcut: "⏎") { [weak self] in
+      ResultAction(title: LocalizationManager.shared.t("action.open"), shortcut: "⏎") {
+        [weak self] in
         Task { await self?.execute(result: result) }
       },
-      ResultAction(title: "在 Finder 中显示", shortcut: "⌘⏎") {
+      ResultAction(title: LocalizationManager.shared.t("action.openInFinder"), shortcut: "⌘⏎") {
         NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: "")
       },
-      ResultAction(title: "复制路径") {
+      ResultAction(title: LocalizationManager.shared.t("action.copyPath")) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(path, forType: .string)
       },
-      ResultAction(title: "移到废纸篓") {
+      ResultAction(title: LocalizationManager.shared.t("action.moveToTrash")) {
         do {
           try FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: nil)
         } catch {

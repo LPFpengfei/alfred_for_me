@@ -22,6 +22,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Setup standard macOS menu bar (required for copy/paste shortcuts)
     setupMainMenu()
 
+    // Listen for language changes to rebuild menus and window titles
+    LocalizationManager.shared.$language
+      .dropFirst()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] _ in
+        self?.setupMainMenu()
+        self?.settingsWindow?.title = LocalizationManager.shared.t("menu.settings")
+      }
+      .store(in: &cancellables)
+
     // Initialize core systems
     setupManagers()
     setupPlugins()

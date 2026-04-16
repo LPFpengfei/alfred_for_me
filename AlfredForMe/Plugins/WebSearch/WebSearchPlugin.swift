@@ -38,11 +38,12 @@ final class WebSearchPlugin: SearchPlugin {
         if !searchTerm.isEmpty {
           results.append(makeResult(engine: engine, searchTerm: searchTerm, relevance: 0.95))
         } else {
+          let l10n = LocalizationManager.shared
           results.append(
             SearchResult(
               id: "web:\(engine.id):placeholder",
-              title: "搜索 \(engine.name)...",
-              subtitle: "输入搜索关键词",
+              title: "\(l10n.t("plugin.webSearch.search")) \(engine.name)...",
+              subtitle: l10n.t("plugin.webSearch.inputKeyword"),
               icon: nil,
               category: .webSearch,
               relevanceScore: 0.95,
@@ -55,11 +56,12 @@ final class WebSearchPlugin: SearchPlugin {
     } else {
       // Only show URL opening option for URL-like queries
       if looksLikeURL(query.raw) {
+        let l10n = LocalizationManager.shared
         results.append(
           SearchResult(
             id: "web:openurl:\(query.raw)",
-            title: "打开 \(query.raw)",
-            subtitle: "在浏览器中打开",
+            title: "\(l10n.t("plugin.webSearch.openUrl")) \(query.raw)",
+            subtitle: l10n.t("plugin.webSearch.openInBrowser"),
             icon: NSImage(systemSymbolName: "globe", accessibilityDescription: nil),
             category: .webSearch,
             relevanceScore: 0.95,
@@ -88,10 +90,11 @@ final class WebSearchPlugin: SearchPlugin {
 
   func actions(for result: SearchResult) -> [ResultAction] {
     return [
-      ResultAction(title: "在浏览器中搜索", shortcut: "⏎") { [weak self] in
+      ResultAction(title: LocalizationManager.shared.t("action.searchInBrowser"), shortcut: "⏎") {
+        [weak self] in
         Task { await self?.execute(result: result) }
       },
-      ResultAction(title: "复制搜索链接") {
+      ResultAction(title: LocalizationManager.shared.t("action.copyLink")) {
         if let urlString = result.userData["url"] {
           NSPasteboard.general.clearContents()
           NSPasteboard.general.setString(urlString, forType: .string)
@@ -108,7 +111,8 @@ final class WebSearchPlugin: SearchPlugin {
     let url = engine.buildURL(query: searchTerm)
     return SearchResult(
       id: "web:\(engine.id):\(searchTerm)",
-      title: "搜索 \(engine.name): \(searchTerm)",
+      title:
+        "\(LocalizationManager.shared.t("plugin.webSearch.search")) \(engine.name): \(searchTerm)",
       subtitle: url?.absoluteString ?? "",
       icon: NSImage(systemSymbolName: "globe", accessibilityDescription: nil),
       category: .webSearch,
@@ -127,8 +131,13 @@ final class WebSearchPlugin: SearchPlugin {
     if lowered.hasPrefix("http://") || lowered.hasPrefix("https://") { return true }
     if lowered.contains(".") && !lowered.contains(" ") {
       let parts = lowered.split(separator: ".")
-      if parts.count >= 2, let last = parts.last, last.count >= 2 && last.count <= 10 {
-        return true
+      if parts.count >= 2, let last = parts.last {
+        // Only recognize common web TLDs, not file extensions
+        let webTLDs: Set<String> = [
+          "com", "org", "net", "io", "dev", "co", "me", "app", "cn", "edu",
+          "gov", "info", "xyz", "tech", "ai", "cc", "tv", "uk", "de", "jp",
+        ]
+        return webTLDs.contains(String(last))
       }
     }
     return false

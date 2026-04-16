@@ -13,6 +13,8 @@ final class SearchPanelController: NSObject {
   private var isVisible = false
   private var globalClickMonitor: Any?
   private var localKeyMonitor: Any?
+  private var visualEffectView: NSVisualEffectView!
+  private var themeCancellable: AnyCancellable?
 
   init(searchEngine: SearchEngine, themeManager: ThemeManager, settingsManager: SettingsManager) {
     self.searchEngine = searchEngine
@@ -141,9 +143,11 @@ final class SearchPanelController: NSObject {
     visualEffectView.wantsLayer = true
     visualEffectView.layer?.cornerRadius = 14
     visualEffectView.layer?.masksToBounds = true
+    self.visualEffectView = visualEffectView
 
     let contentView = SearchPanelView(viewModel: viewModel)
       .environmentObject(themeManager)
+      .environmentObject(settingsManager)
 
     let hostingView = NSHostingView(rootView: contentView)
     hostingView.translatesAutoresizingMaskIntoConstraints = false
@@ -167,6 +171,23 @@ final class SearchPanelController: NSObject {
 
     panel.contentView = containerView
     self.panel = panel
+
+    // Update visual effect material when theme changes
+    updateVisualEffectMaterial()
+    themeCancellable = themeManager.$current
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] _ in
+        self?.updateVisualEffectMaterial()
+      }
+  }
+
+  private func updateVisualEffectMaterial() {
+    let theme = themeManager.current
+    let isDark =
+      theme.id.contains("dark") || theme.id == "monokai" || theme.id == "nord"
+      || theme.id == "dracula" || theme.id == "one-dark" || theme.id == "solarized-dark"
+    visualEffectView?.appearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
+    visualEffectView?.material = .hudWindow
   }
 
   private func positionPanel() {

@@ -10,16 +10,16 @@ enum AIProtocolType: String, CaseIterable, Codable, Identifiable {
 
   var displayName: String {
     switch self {
-    case .openaiCompatible: return "OpenAI 兼容"
-    case .anthropicCompatible: return "Anthropic 兼容"
+    case .openaiCompatible: return LocalizationManager.shared.t("ai.protocolType.openai")
+    case .anthropicCompatible: return LocalizationManager.shared.t("ai.protocolType.anthropic")
     }
   }
 
   var description: String {
     switch self {
     case .openaiCompatible:
-      return "兼容 OpenAI Chat Completions API（OpenAI、DeepSeek、Moonshot、通义千问、本地 Ollama 等）"
-    case .anthropicCompatible: return "兼容 Anthropic Messages API（Claude 系列）"
+      return LocalizationManager.shared.t("ai.protocolType.openaiDesc")
+    case .anthropicCompatible: return LocalizationManager.shared.t("ai.protocolType.anthropicDesc")
     }
   }
 }
@@ -194,7 +194,7 @@ struct ChatSession: Identifiable, Codable {
   var updatedAt: Date
   var providerName: String?
 
-  init(title: String = "New Chat") {
+  init(title: String = LocalizationManager.shared.t("ai.newChatTitle")) {
     self.id = UUID().uuidString
     self.title = title
     self.messages = []
@@ -230,19 +230,20 @@ enum AIError: Error, LocalizedError {
   case noProviderConfigured
 
   var errorDescription: String? {
+    let l10n = LocalizationManager.shared
     switch self {
-    case .noAPIKey: return "API Key 未配置"
-    case .invalidEndpoint: return "无效的 API 端点"
-    case .networkError(let msg): return "网络错误: \(msg)"
-    case .apiError(let msg): return "API 错误: \(msg)"
-    case .decodingError(let msg): return "解码错误: \(msg)"
-    case .cancelled: return "请求已取消"
-    case .unauthorized: return "未授权 - 请检查 API Key"
-    case .rateLimited: return "请求频率受限"
-    case .modelNotFound: return "模型未找到"
-    case .invalidResponse: return "无效的响应"
-    case .configurationError(let msg): return "配置错误: \(msg)"
-    case .noProviderConfigured: return "未配置 AI 服务商"
+    case .noAPIKey: return l10n.t("ai.error.noApiKey")
+    case .invalidEndpoint: return l10n.t("ai.error.invalidEndpoint")
+    case .networkError(let msg): return "\(l10n.t("ai.error.network")): \(msg)"
+    case .apiError(let msg): return "\(l10n.t("ai.error.api")): \(msg)"
+    case .decodingError(let msg): return "\(l10n.t("ai.error.decoding")): \(msg)"
+    case .cancelled: return l10n.t("ai.error.cancelled")
+    case .unauthorized: return l10n.t("ai.error.unauthorized")
+    case .rateLimited: return l10n.t("ai.error.rateLimited")
+    case .modelNotFound: return l10n.t("ai.error.modelNotFound")
+    case .invalidResponse: return l10n.t("ai.error.invalidResponse")
+    case .configurationError(let msg): return "\(l10n.t("ai.error.config")): \(msg)"
+    case .noProviderConfigured: return l10n.t("ai.error.noProvider")
     }
   }
 }
