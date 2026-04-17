@@ -27,7 +27,6 @@ final class BookmarkPlugin: SearchPlugin {
         if query.isKeywordTrigger, let kw = query.keyword {
             return kw.lowercased() == "bm" || kw.lowercased() == "bookmark"
         }
-        // Also search bookmarks in general queries if keyword typed
         return false
     }
 

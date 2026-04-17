@@ -112,13 +112,11 @@ struct QueryParser {
 
     let hasKeywordPlugin = pluginManager.enabledPlugins().contains { plugin in
       if plugin.keyword?.lowercased() == keyword { return true }
-      // Also check if plugin canHandle this as a keyword trigger (for aliases like "cb")
-      if plugin.keyword != nil {
-        let testQuery = SearchQuery(
-          raw: raw, keyword: keyword, argument: argument, isKeywordTrigger: true)
-        return plugin.canHandle(query: testQuery)
-      }
-      return false
+      // Also check if plugin canHandle this as a keyword trigger
+      // This covers plugins like WebSearch that have dynamic keywords (google/bing/etc.)
+      let testQuery = SearchQuery(
+        raw: raw, keyword: keyword, argument: argument, isKeywordTrigger: true)
+      return plugin.canHandle(query: testQuery)
     }
 
     if hasKeywordPlugin {

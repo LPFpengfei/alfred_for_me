@@ -46,8 +46,9 @@ final class AIChatPlugin: SearchPlugin {
       ]
     }
 
-    // Extract the question after "ai "
-    let question = String(text.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+    // Extract the question from parsed argument
+    let question = (query.argument ?? String(text.dropFirst(3))).trimmingCharacters(
+      in: .whitespaces)
     guard !question.isEmpty else { return [] }
 
     return [

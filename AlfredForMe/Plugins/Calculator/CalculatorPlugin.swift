@@ -1,4 +1,5 @@
 import AppKit
+import Expression
 import Foundation
 
 // MARK: - Calculator Plugin
@@ -45,7 +46,6 @@ final class CalculatorPlugin: SearchPlugin {
       expression
       .replacingOccurrences(of: "×", with: "*")
       .replacingOccurrences(of: "÷", with: "/")
-      .replacingOccurrences(of: "^", with: "**")
 
     guard let result = evaluateExpression(expression) else { return [] }
 
@@ -94,65 +94,15 @@ final class CalculatorPlugin: SearchPlugin {
   // MARK: - Expression Evaluation
 
   private func evaluateExpression(_ expression: String) -> Double? {
-    // Use NSExpression for safe evaluation
-    let sanitized =
-      expression
-      .replacingOccurrences(of: "**", with: "↑")  // Placeholder for power
-      .trimmingCharacters(in: .whitespaces)
-
-    // Handle power operator
-    if sanitized.contains("↑") {
-      return evaluateWithPower(sanitized)
-    }
-
-    // Validate: only allow digits, operators, parens, dots, spaces
-    // NSExpression(format:) throws ObjC exceptions on invalid input which Swift cannot catch
-    let allowed = CharacterSet(charactersIn: "0123456789.+-*/% ()")
-    guard sanitized.unicodeScalars.allSatisfy({ allowed.contains($0) }) else { return nil }
-    // Must contain at least one digit
-    guard sanitized.contains(where: { $0.isNumber }) else { return nil }
-    // Balanced parentheses check
-    var depth = 0
-    for ch in sanitized {
-      if ch == "(" { depth += 1 } else if ch == ")" { depth -= 1 }
-      if depth < 0 { return nil }
-    }
-    guard depth == 0 else { return nil }
-    // Reject empty parens, consecutive operators, trailing operators
-    let trimmed = sanitized.replacingOccurrences(of: " ", with: "")
-    if trimmed.contains("()") { return nil }
-    // Reject if ends or starts with an operator (except leading minus)
-    let ops = CharacterSet(charactersIn: "+-*/%")
-    if let last = trimmed.unicodeScalars.last, ops.contains(last) { return nil }
-    if let first = trimmed.unicodeScalars.first, CharacterSet(charactersIn: "+*/%").contains(first)
-    {
+    // Use the Expression library for safe evaluation (no ObjC exceptions)
+    do {
+      let expr = Expression(expression)
+      let result = try expr.evaluate()
+      guard result.isFinite else { return nil }
+      return result
+    } catch {
       return nil
     }
-
-    let nsExpression = NSExpression(format: sanitized)
-    if let result = nsExpression.expressionValue(with: nil, context: nil) as? NSNumber {
-      return result.doubleValue
-    }
-    return nil
-  }
-
-  private func evaluateWithPower(_ expression: String) -> Double? {
-    // Simple power handling: split on ↑ and compute
-    let parts = expression.split(separator: "↑", maxSplits: 1)
-    guard parts.count == 2 else {
-      // Try without power
-      let cleaned = expression.replacingOccurrences(of: "↑", with: "")
-      return evaluateExpression(cleaned)
-    }
-
-    let baseExpr = String(parts[0]).trimmingCharacters(in: .whitespaces)
-    let expExpr = String(parts[1]).trimmingCharacters(in: .whitespaces)
-
-    guard let base = evaluateExpression(baseExpr),
-      let exp = evaluateExpression(expExpr)
-    else { return nil }
-
-    return pow(base, exp)
   }
 
   private func formatNumber(_ number: Double) -> String {

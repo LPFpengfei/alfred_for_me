@@ -140,6 +140,7 @@ struct SearchTextField: NSViewRepresentable {
     if textField.stringValue != text {
       textField.stringValue = text
     }
+    textField.placeholderString = placeholder
     textField.textColor = NSColor(theme.textColor)
     textField.font = .systemFont(ofSize: effectiveFontSize)
   }

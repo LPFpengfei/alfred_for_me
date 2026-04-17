@@ -51,7 +51,7 @@
 - ✅ **设置界面** - 完整的偏好设置面板 (10 个分类)
 - ✅ **菜单栏图标** - 常驻状态栏，快速访问
 - ✅ **操作面板** - Tab 键展开详细操作列表
-- ✅ **国际化 (i18n)** - 中文 / English 双语支持，所有 UI 文本（设置面板、搜索结果、操作按钮、AI 对话、错误提示等）均通过 LocalizationManager 管理
+- ✅ **国际化 (i18n)** - 中文 / English 双语支持，所有 UI 文本（设置面板、搜索结果、操作按钮、AI 对话、搜索栏提示、错误提示等）均通过 LocalizationManager 管理，切换语言实时生效
 
 ## 搜索优化
 
@@ -74,18 +74,31 @@
 
 | 语法 | 功能 | 示例 |
 |------|------|------|
-| `<text>` | 搜索应用/文件 | `safari` |
+| `<text>` | 搜索应用 | `safari` |
 | `open <query>` | 文件搜索 (Spotlight) | `open readme` |
 | `find <query>` | 文件搜索 (Spotlight) | `find config.json` |
-| `google <query>` | Web 搜索 | `google swift tutorial` |
+| `google <query>` | Web 搜索 (Google) | `google swift tutorial` |
+| `bing <query>` | Web 搜索 (Bing) | `bing macOS tips` |
+| `duck <query>` | Web 搜索 (DuckDuckGo) | `duck privacy` |
+| `gh <query>` | Web 搜索 (GitHub) | `gh swift package` |
+| `so <query>` | Web 搜索 (Stack Overflow) | `so swiftui layout` |
+| `wiki <query>` | Web 搜索 (Wikipedia) | `wiki Alan Turing` |
+| `yt <query>` | Web 搜索 (YouTube) | `yt WWDC 2025` |
+| `baidu <query>` | Web 搜索 (百度) | `baidu 天气预报` |
 | `= <expression>` | 计算器 | `= 2 + 3 * 4` |
 | `> <command>` | 终端命令 | `> ls -la` |
+| `$ <command>` | 终端命令 (别名) | `$ pwd` |
 | `/ <path>` | 文件导航 | `/Applications` |
 | `~ <path>` | 从 Home 导航 | `~/Documents` |
 | `define <word>` | 词典查询 | `define serendipity` |
+| `dict <word>` | 词典查询 (别名) | `dict hello` |
 | `clipboard <search>` | 剪贴板历史 | `clipboard password` |
+| `cb <search>` | 剪贴板历史 (别名) | `cb text` |
 | `snip <search>` | 代码片段 | `snip email` |
+| `snippet <search>` | 代码片段 (别名) | `snippet email` |
 | `bm <search>` | 浏览器书签 | `bm github` |
+| `bookmark <search>` | 浏览器书签 (别名) | `bookmark github` |
+| `ai <question>` | AI 对话 | `ai what is swift` |
 | `lock` | 锁屏 | `lock` |
 | `sleep` | 睡眠 | `sleep` |
 

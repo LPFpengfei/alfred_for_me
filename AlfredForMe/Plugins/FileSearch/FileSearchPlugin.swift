@@ -9,7 +9,7 @@ final class FileSearchPlugin: SearchPlugin {
   var isEnabled = true
   let priority = 80
 
-  private let fileKeywords = ["open", "find", "file"]
+  private let fileKeywords = ["open", "find"]
 
   /// Reusable metadata query (like Alfred's AlfredMetadataQuerier)
   private var metadataQuery: NSMetadataQuery?
@@ -36,7 +36,28 @@ final class FileSearchPlugin: SearchPlugin {
       searchText = query.raw
     }
 
-    guard !searchText.isEmpty else { return [] }
+    // Show placeholder hint when keyword is typed without argument
+    guard !searchText.isEmpty else {
+      let l10n = LocalizationManager.shared
+      let kw = query.keyword?.lowercased() ?? "open"
+      let title =
+        kw == "find"
+        ? l10n.t("plugin.fileSearch.findFile")
+        : l10n.t("plugin.fileSearch.openFile")
+      return [
+        SearchResult(
+          id: "filesearch:placeholder",
+          title: title,
+          subtitle: l10n.t("plugin.fileSearch.inputFileName"),
+          icon: NSImage(
+            systemSymbolName: "doc.text.magnifyingglass", accessibilityDescription: nil),
+          category: .file,
+          relevanceScore: 0.95,
+          plugin: id,
+          actionable: false
+        )
+      ]
+    }
 
     return await spotlightSearch(query: searchText)
   }

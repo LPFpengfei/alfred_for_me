@@ -19,56 +19,56 @@ final class WebSearchPlugin: SearchPlugin {
   }
 
   func canHandle(query: SearchQuery) -> Bool {
-    if query.isKeywordTrigger, let kw = query.keyword {
-      return engines.contains { $0.keyword.lowercased() == kw.lowercased() && $0.isEnabled }
+    // Check if first word matches any web search engine keyword
+    if let kw = query.keyword {
+      if engines.contains(where: { $0.keyword.lowercased() == kw.lowercased() && $0.isEnabled }) {
+        return true
+      }
     }
-    // Only show web search as fallback for URL-like queries
+    // Also show web search as fallback for URL-like queries
     return looksLikeURL(query.raw)
   }
 
   func search(query: SearchQuery) async -> [SearchResult] {
     var results: [SearchResult] = []
 
-    if query.isKeywordTrigger, let kw = query.keyword {
-      // Keyword-triggered search
-      if let engine = engines.first(where: {
+    if let kw = query.keyword,
+      let engine = engines.first(where: {
         $0.keyword.lowercased() == kw.lowercased() && $0.isEnabled
-      }) {
-        let searchTerm = query.argument ?? ""
-        if !searchTerm.isEmpty {
-          results.append(makeResult(engine: engine, searchTerm: searchTerm, relevance: 0.95))
-        } else {
-          let l10n = LocalizationManager.shared
-          results.append(
-            SearchResult(
-              id: "web:\(engine.id):placeholder",
-              title: "\(l10n.t("plugin.webSearch.search")) \(engine.name)...",
-              subtitle: l10n.t("plugin.webSearch.inputKeyword"),
-              icon: nil,
-              category: .webSearch,
-              relevanceScore: 0.95,
-              plugin: id,
-              actionable: false,
-              userData: ["engine": engine.keyword]
-            ))
-        }
-      }
-    } else {
-      // Only show URL opening option for URL-like queries
-      if looksLikeURL(query.raw) {
+      })
+    {
+      // Keyword-triggered search (e.g. "google swift tutorial")
+      let searchTerm = query.argument ?? ""
+      if !searchTerm.isEmpty {
+        results.append(makeResult(engine: engine, searchTerm: searchTerm, relevance: 0.95))
+      } else {
         let l10n = LocalizationManager.shared
         results.append(
           SearchResult(
-            id: "web:openurl:\(query.raw)",
-            title: "\(l10n.t("plugin.webSearch.openUrl")) \(query.raw)",
-            subtitle: l10n.t("plugin.webSearch.openInBrowser"),
-            icon: NSImage(systemSymbolName: "globe", accessibilityDescription: nil),
+            id: "web:\(engine.id):placeholder",
+            title: "\(l10n.t("plugin.webSearch.search")) \(engine.name)...",
+            subtitle: l10n.t("plugin.webSearch.inputKeyword"),
+            icon: nil,
             category: .webSearch,
             relevanceScore: 0.95,
             plugin: id,
-            userData: ["url": normalizeURL(query.raw)]
+            actionable: false,
+            userData: ["engine": engine.keyword]
           ))
       }
+    } else if looksLikeURL(query.raw) {
+      let l10n = LocalizationManager.shared
+      results.append(
+        SearchResult(
+          id: "web:openurl:\(query.raw)",
+          title: "\(l10n.t("plugin.webSearch.openUrl")) \(query.raw)",
+          subtitle: l10n.t("plugin.webSearch.openInBrowser"),
+          icon: NSImage(systemSymbolName: "globe", accessibilityDescription: nil),
+          category: .webSearch,
+          relevanceScore: 0.95,
+          plugin: id,
+          userData: ["url": normalizeURL(query.raw)]
+        ))
     }
 
     return results

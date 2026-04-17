@@ -13,7 +13,6 @@ final class DictionaryPlugin: SearchPlugin {
     func canHandle(query: SearchQuery) -> Bool {
         if query.isKeywordTrigger, let kw = query.keyword {
             return kw.lowercased() == "define" || kw.lowercased() == "dict"
-                || kw.lowercased() == "d"
         }
         return false
     }
